@@ -1,0 +1,11 @@
+import express from "express";
+import { ethers } from "ethers";
+import PeerId from "peer-id";
+export declare function providerFromChainId(chainId: any): ethers.InfuraProvider;
+export declare const logger: import("winston").Logger;
+export declare function walletFromEnv(): ethers.Wallet | ethers.HDNodeWallet;
+export declare const PINTSWAP_DIRECTORY: string;
+export declare const PINTSWAP_PEERID_FILEPATH: string;
+export declare function loadOrCreatePeerId(): Promise<PeerId>;
+export declare function runServer(app: ReturnType<typeof express>): Promise<void>;
+export declare function run(): Promise<void>;
