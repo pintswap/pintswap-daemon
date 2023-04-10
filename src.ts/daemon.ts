@@ -77,8 +77,10 @@ export async function run() {
   rpc.post('/add', (req, res) => {
     const { givesToken, getsToken, givesAmount, getsAmount, chainId } = req.body;
     const runner = wallet.connect(providerFromChainId(Number(chainId)));
+    pintswap.signer = runner;
     const offer = {
       givesToken, getsToken, givesAmount, getsAmount };
+    console.log(offer);
     const orderHash = hashOffer(offer);
     pintswap.offers.set(orderHash, offer);
     res.json({
