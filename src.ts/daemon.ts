@@ -41,7 +41,7 @@ export const PINTSWAP_PEERID_FILEPATH = path.join(PINTSWAP_DIRECTORY, 'peer-id.j
 export async function loadOrCreatePeerId(){
   await mkdirp(PINTSWAP_DIRECTORY);
   if (await fs.exists(PINTSWAP_PEERID_FILEPATH)) {
-    return await PeerId.createFromJSON(JSON.parse(await fs.readFile(path.join(PINTSWAP_PEERID_FILEPATH, 'utf8'))));
+    return await PeerId.createFromJSON(JSON.parse(await fs.readFile(PINTSWAP_PEERID_FILEPATH, 'utf8')));
   }
   logger.info('generating PeerId ...');
   const peerId = await PeerId.create();
@@ -50,14 +50,11 @@ export async function loadOrCreatePeerId(){
 }
 
 export async function runServer(app: ReturnType<typeof express>) {
-  const hostname = process.env.PINTSWAP_DAEMON_HOST;
-  const port = process.env.PINTSWAP_DAEMON_PORT;
-  const uri = url.format({
-    hostname,
-    port
-  });
+  const hostname = process.env.PINTSWAP_DAEMON_HOST || '127.0.0.1';
+  const port = process.env.PINTSWAP_DAEMON_PORT || 42161;
+  const uri = hostname + ':' + port;
   await new Promise<void>((resolve, reject) => {
-    app.listen(process.env.PINTSWAP_DAEMON_PORT || 42161 , process.env.PINTSWAP_DAEMON_HOST || '127.0.0.1', (err) => err ? reject(err) : resolve());
+    app.listen(port, hostname, (err) => err ? reject(err) : resolve());
   });
   logger.info('daemon bound to ' + uri);
 }
