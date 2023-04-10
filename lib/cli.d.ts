@@ -1,4 +1,4 @@
-export declare const logger: import("winston").Logger;
+export declare const logger: any;
 export declare const SUBSTITUTIONS: {
     ETH: string;
 };

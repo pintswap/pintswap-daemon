@@ -10,7 +10,7 @@ import util from "util";
 import { createLogger } from "pintswap-sdk/lib/logger";
 import { ethers } from "ethers";
 
-export const logger = createLogger('pintswap-cli');
+export const logger: any = createLogger('pintswap-cli');
 
 export const SUBSTITUTIONS = {
   ETH: ethers.ZeroAddress
