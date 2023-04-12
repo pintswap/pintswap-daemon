@@ -7,7 +7,7 @@ import fetch from "node-fetch";
 import { camelCase } from "change-case";
 import url from "url";
 import util from "util";
-import { createLogger } from "pintswap-sdk/lib/logger";
+import { createLogger } from "@pintswap/sdk/lib/logger";
 import { ethers } from "ethers";
 
 export const logger: any = createLogger('pintswap-cli');
