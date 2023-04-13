@@ -89,6 +89,15 @@ export async function run() {
   pintswap.on("peer:discovery", (peer) => {
     logger.info("discovered peer: " + peer.id.toB58String());
   });
+  let publisher = null;
+  rpc.post('/publish', () => {
+    publisher = pintswap.startPublishingOffers();
+    logger.info('started publishing offers');
+  });
+  rpc.post('/quiet', () => {
+    if (publisher) publisher.stop();
+    logger.info('stopped publishing offers');
+  });
   rpc.use(bodyParser.json({ extended: true }));
   rpc.post("/add", (req, res) => {
     const { givesToken, getsToken, givesAmount, getsAmount, chainId } =
