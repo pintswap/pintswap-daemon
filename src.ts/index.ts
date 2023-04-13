@@ -1,2 +1,2 @@
 export * from "./daemon";
-export * from "pintswap-sdk/lib/logger";
+export * from "@pintswap/sdk/lib/logger";
