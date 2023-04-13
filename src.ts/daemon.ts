@@ -91,8 +91,26 @@ export async function run() {
   });
   let publisher = null;
   rpc.post('/publish', () => {
-    publisher = pintswap.startPublishingOffers();
+    publisher = pintswap.startPublishingOffers(10000);
     logger.info('started publishing offers');
+  });
+  rpc.post('/subscribe', async (req, res) => {
+    (async () => {
+      await pintswap.subscribeOffers();
+      res.json({
+        status: 'OK',
+	result: 'OK'
+      });
+    })().catch((err) => logger.error(err));
+  });
+  rpc.post('/unsubscribe', async (req, res) => {
+    (async () => {
+      await pintswap.pubsub.unsubscribe('/pintswap/0.1.0/publish-orders');
+      res.json({
+        status: 'OK',
+	result: 'OK'
+      });
+    })().catch((err) => logger.error(err));
   });
   rpc.post('/quiet', () => {
     if (publisher) publisher.stop();
