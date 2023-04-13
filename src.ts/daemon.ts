@@ -90,13 +90,36 @@ export async function run() {
     logger.info("discovered peer: " + peer.id.toB58String());
   });
   let publisher = null;
-  rpc.post('/publish', () => {
-    publisher = pintswap.startPublishingOffers();
+  rpc.post('/publish', (req, res) =>  {
+    if (publisher) {
+      logger.info('already publishing offers');
+      return res.json({
+        status: 'NO',
+	result: 'NO'
+      });
+    }
+    publisher = pintswap.startPublishingOffers(10000);
     logger.info('started publishing offers');
+    res.json({
+      status: 'OK',
+      result: 'OK'
+    });
   });
-  rpc.post('/quiet', () => {
-    if (publisher) publisher.stop();
+  rpc.post('/quiet', (req, res) => {
+    if (publisher) {
+       publisher.stop();
+       publisher = null;
+       logger.info('not publishing offers yet');
+       return res.json({
+         status: 'NO',
+	 result: 'NO'
+       });
+    }
     logger.info('stopped publishing offers');
+    res.json({
+      status: 'OK',
+      result: 'OK'
+    });
   });
   rpc.use(bodyParser.json({ extended: true }));
   rpc.post("/add", (req, res) => {
