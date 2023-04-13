@@ -87,7 +87,7 @@ export async function run() {
   logger.info("using multiaddr: " + peerId.toB58String());
   logger.info("registered protocol handlers");
   pintswap.on("peer:discovery", (peer) => {
-    logger.info("discovered peer: " + peer.id.toB58String());
+    logger.info("discovered peer " + peer._id.toB58String());
   });
   let publisher = null;
   rpc.post('/publish', (req, res) =>  {
