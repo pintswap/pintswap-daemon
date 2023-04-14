@@ -8,6 +8,7 @@ import bodyParser from "body-parser";
 import url from "url";
 import PeerId from "peer-id";
 import fs from "fs-extra";
+import { TOKENS } from "./token-list";
 
 export function providerFromChainId(chainId) {
   switch (Number(chainId)) {
@@ -75,12 +76,60 @@ export async function runServer(app: ReturnType<typeof express>) {
   logger.info("daemon bound to " + uri);
 }
 
+export async function expandValues([token, amount], provider) {
+  const tokenRecord = TOKENS.find(
+    (v) => v.name === token || v.address.toLowerCase() === token.tolowerCase()
+  );
+  if (tokenRecord)
+    return [
+      ethers.getAddress(tokenRecord.address),
+      ethers.hexlify(ethers.toBeArray(ethers.parseUnits(amount, tokenRecord.decimals))),
+    ];
+  const address = ethers.getAddress(token);
+  const contract = new ethers.Contract(
+    address,
+    ["function decimals() view returns (uint8)"],
+    provider
+  );
+  return [
+    address,
+    ethers.hexlify(ethers.toBeArray(ethers.parseUnits(amount, await contract.decimals()))),
+  ];
+}
+
+export async function expandOffer(offer, provider) {
+  const {
+    givesToken: givesTokenRaw,
+    givesAmount: givesAmountRaw,
+    getsToken: getsTokenRaw,
+    getsAmount: getsAmountRaw,
+  } = offer;
+  const [givesToken, givesAmount] = await expandValues(
+    [givesTokenRaw, givesAmountRaw],
+    provider
+  );
+  const [getsToken, getsAmount] = await expandValues(
+    [getsTokenRaw, getsAmountRaw],
+    provider
+  );
+  return {
+    givesToken,
+    givesAmount,
+    getsToken,
+    getsAmount,
+  };
+}
+
 export async function run() {
   const wallet = walletFromEnv().connect(providerFromEnv());
   const rpc = express();
   const peerId = await loadOrCreatePeerId();
   logger.info("using wallet: " + wallet.address);
-  const pintswap = new Pintswap({ awaitReceipts: true, signer: wallet, peerId });
+  const pintswap = new Pintswap({
+    awaitReceipts: true,
+    signer: wallet,
+    peerId,
+  });
   pintswap.offers = new Map();
   await pintswap.startNode();
   logger.info("connected to pintp2p");
@@ -90,70 +139,82 @@ export async function run() {
     logger.info("discovered peer: " + peer.toB58String());
   });
   let publisher = null;
-  rpc.post('/publish', (req, res) =>  {
+  rpc.post("/publish", (req, res) => {
     if (publisher) {
-      logger.info('already publishing offers');
+      logger.info("already publishing offers");
       return res.json({
-        status: 'NO',
-	result: 'NO'
+        status: "NO",
+        result: "NO",
       });
     }
     publisher = pintswap.startPublishingOffers(10000);
-    logger.info('started publishing offers');
+    logger.info("started publishing offers");
     res.json({
-      status: 'OK',
-      result: 'OK'
+      status: "OK",
+      result: "OK",
     });
   });
-  rpc.post('/subscribe', async (req, res) => {
+  rpc.post("/subscribe", async (req, res) => {
     (async () => {
       await pintswap.subscribeOffers();
       res.json({
-        status: 'OK',
-	result: 'OK'
+        status: "OK",
+        result: "OK",
       });
     })().catch((err) => logger.error(err));
   });
-  rpc.post('/unsubscribe', async (req, res) => {
+  rpc.post("/unsubscribe", async (req, res) => {
     (async () => {
-      await pintswap.pubsub.unsubscribe('/pintswap/0.1.0/publish-orders');
+      await pintswap.pubsub.unsubscribe("/pintswap/0.1.0/publish-orders");
       res.json({
-        status: 'OK',
-	result: 'OK'
+        status: "OK",
+        result: "OK",
       });
     })().catch((err) => logger.error(err));
   });
-  rpc.post('/quiet', (req, res) => {
+  rpc.post("/quiet", (req, res) => {
     if (publisher) {
-       publisher.stop();
-       publisher = null;
-       logger.info('not publishing offers yet');
-       return res.json({
-         status: 'NO',
-	 result: 'NO'
-       });
+      publisher.stop();
+      publisher = null;
+      logger.info("not publishing offers yet");
+      return res.json({
+        status: "NO",
+        result: "NO",
+      });
     }
-    logger.info('stopped publishing offers');
+    logger.info("stopped publishing offers");
     res.json({
-      status: 'OK',
-      result: 'OK'
+      status: "OK",
+      result: "OK",
     });
   });
   rpc.use(bodyParser.json({ extended: true }));
   rpc.post("/add", (req, res) => {
-    const { givesToken, getsToken, givesAmount, getsAmount, chainId } =
-      req.body;
-    const offer = {
-      givesToken,
-      getsToken,
-      givesAmount: ethers.hexlify(ethers.toBeArray(ethers.getUint(givesAmount))),
-      getsAmount: ethers.hexlify(ethers.toBeArray(ethers.getUint(getsAmount)))
-    };
-    const orderHash = hashOffer(offer);
-    pintswap.offers.set(orderHash, offer);
-    res.json({
-      status: "OK",
-      result: orderHash,
+    (async () => {
+      const { givesToken, getsToken, givesAmount, getsAmount } =
+        await expandOffer(req.body, pintswap.signer);
+      const offer = {
+        givesToken,
+        getsToken,
+        givesAmount: ethers.hexlify(
+          ethers.toBeArray(ethers.getUint(givesAmount))
+        ),
+        getsAmount: ethers.hexlify(
+          ethers.toBeArray(ethers.getUint(getsAmount))
+        ),
+      };
+      const orderHash = hashOffer(offer);
+      pintswap.offers.set(orderHash, offer);
+      res.json({
+        status: "OK",
+        result: orderHash,
+      });
+    })().catch((err) => {
+      logger.error(err);
+      res.json({
+        status: "NO",
+        result: err.code || 1,
+      });
     });
   });
   rpc.post("/offers", (req, res) => {

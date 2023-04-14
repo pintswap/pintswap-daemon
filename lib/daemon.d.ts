@@ -9,4 +9,11 @@ export declare const PINTSWAP_DIRECTORY: string;
 export declare const PINTSWAP_PEERID_FILEPATH: string;
 export declare function loadOrCreatePeerId(): Promise<PeerId>;
 export declare function runServer(app: ReturnType<typeof express>): Promise<void>;
+export declare function expandValues([token, amount]: [any, any], provider: any): Promise<string[]>;
+export declare function expandOffer(offer: any, provider: any): Promise<{
+    givesToken: string;
+    givesAmount: string;
+    getsToken: string;
+    getsAmount: string;
+}>;
 export declare function run(): Promise<void>;
