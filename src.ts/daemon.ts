@@ -78,7 +78,7 @@ export async function runServer(app: ReturnType<typeof express>) {
 
 export async function expandValues([token, amount], provider) {
   const tokenRecord = TOKENS.find(
-    (v) => v.name === token || v.address.toLowerCase() === token.tolowerCase()
+    (v) => [v.symbol, v.name].map((v) => v.toLowerCase()).includes(token.toLowerCase()) || v.address.toLowerCase() === token.toLowerCase()
   );
   if (tokenRecord)
     return [
@@ -104,6 +104,7 @@ export async function expandOffer(offer, provider) {
     getsToken: getsTokenRaw,
     getsAmount: getsAmountRaw,
   } = offer;
+  console.log({ givesTokenRaw, givesAmountRaw, getsTokenRaw, getsAmountRaw });
   const [givesToken, givesAmount] = await expandValues(
     [givesTokenRaw, givesAmountRaw],
     provider
