@@ -23,7 +23,7 @@
     "mkdirp": "^3.0.0",
     "node-fetch": "2",
     "peer-id": "^0.16.0",
-    "@pintswap/sdk": "^1.2.13",
+    "@pintswap/sdk": "^1.2.14",
     "yargs": "^17.7.1"
   },
   "devDependencies": {

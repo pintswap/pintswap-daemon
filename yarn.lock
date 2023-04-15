@@ -413,10 +413,10 @@
   resolved "https://registry.yarnpkg.com/@noble/secp256k1/-/secp256k1-1.7.1.tgz#b251c70f824ce3ca7f8dc3df08d58f005cc0507c"
   integrity sha512-hOUk6AyBFmqVrv7k5WAw/LpszxVbj9gGN4JRkIX52fdFAj1UA61KXmZDvqVEm+pOyec3+fIeZB02LYa/pWOArw==
 
-"@pintswap/sdk@^1.2.13":
-  version "1.2.13"
-  resolved "https://registry.yarnpkg.com/@pintswap/sdk/-/sdk-1.2.13.tgz#1abc71338f8ecf2176ea1353dfa6296b182538dc"
-  integrity sha512-zlO22AhRfPXgbkQ8L9FGdkJOChhtcY/taF9WX6jWRfzQ7hr16hPgqq78rAJZO6H8ry8Z3mKKaO5MyT2j77ZmrQ==
+"@pintswap/sdk@^1.2.14":
+  version "1.2.15"
+  resolved "https://registry.yarnpkg.com/@pintswap/sdk/-/sdk-1.2.15.tgz#d2bd66ea6d90f118c445ca0a53db4ba0066efd9b"
+  integrity sha512-zxfw6a3wjE5XzICPtAWM2bhlBQZ39zQNMuzvEphy7+hc2hUPjpeDRE//j4sPqB+nv6ZXGRh9ySYwGphBxFo0Lg==
   dependencies:
     "@multiformats/multiaddr" "^12.1.0"
     "@noble/ed25519" "^1.6.0"
@@ -1542,9 +1542,9 @@ elliptic@6.5.4, elliptic@^6.5.3, elliptic@^6.5.4:
     minimalistic-assert "^1.0.1"
     minimalistic-crypto-utils "^1.0.1"
 
-"emasm@https://github.com/kungfuflex/emasm":
+"emasm@git+https://github.com/kungfuflex/emasm.git":
   version "0.2.0"
-  resolved "https://github.com/kungfuflex/emasm#d2f5d922f0dc0440e7b227a441ce516058e2682f"
+  resolved "git+https://github.com/kungfuflex/emasm.git#d2f5d922f0dc0440e7b227a441ce516058e2682f"
 
 emoji-regex@^8.0.0:
   version "8.0.0"
