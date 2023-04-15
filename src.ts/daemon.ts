@@ -104,7 +104,6 @@ export async function expandOffer(offer, provider) {
     getsToken: getsTokenRaw,
     getsAmount: getsAmountRaw,
   } = offer;
-  console.log({ givesTokenRaw, givesAmountRaw, getsTokenRaw, getsAmountRaw });
   const [givesToken, givesAmount] = await expandValues(
     [givesTokenRaw, givesAmountRaw],
     provider
