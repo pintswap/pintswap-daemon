@@ -246,6 +246,7 @@ export async function run() {
       };
       const orderHash = hashOffer(offer);
       pintswap.offers.set(orderHash, offer);
+      await saveOffers(pintswap);
       res.json({
         status: "OK",
         result: orderHash,

@@ -151,19 +151,19 @@ export async function fromLimitOrder({
 }, provider) {
   const [ trade, base ] = pair.split('/').map(toAddress);
   const [ tradeDecimals, baseDecimals ] = await Promise.all([ trade, base ].map(async (v) => await getDecimals(v, provider)));
-  if (type === 'buy') {
+  if (type === 'bid') {
     return {
       getsToken: trade,
       givesToken: base,
-      getsAmount: ethers.toBeHex(BigInt(Number(amount)*(10**tradeDecimals))),
-      givesAmount: ethers.toBeHex(BigInt(Number(amount)*(10**tradeDecimals)/(Number(price)*(10**baseDecimals))))
+      getsAmount: ethers.toBeHex(BigInt(Math.floor(Number(amount)*(10**tradeDecimals)))),
+      givesAmount: ethers.toBeHex(BigInt(Math.floor(Number(price)*Number(amount)*Number(10**baseDecimals))))
     };
   }
-  return {
+  if (type === 'ask') return {
     getsToken: base,
     givesToken: trade,
-    givesAmount: ethers.toBeHex(Number(amount)*(10**tradeDecimals)),
-    getsAmount: ethers.toBeHex(BigInt(Number(amount)*(10**tradeDecimals)/Number(price)*(10**baseDecimals)))
+    givesAmount: ethers.toBeHex(BigInt(Math.floor(Number(amount)*(10**tradeDecimals)))),
+    getsAmount: ethers.toBeHex(BigInt(Math.floor(Number(price)*Number(amount)*Number(10**baseDecimals))))
   };
 }
 
