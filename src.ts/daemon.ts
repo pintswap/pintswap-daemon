@@ -9,6 +9,7 @@ import url from "url";
 import PeerId from "peer-id";
 import fs from "fs-extra";
 import { TOKENS } from "./token-list";
+import { fromLimitOrder } from "./orderbook";
 
 export function providerFromChainId(chainId) {
   switch (Number(chainId)) {
@@ -222,6 +223,29 @@ export async function run() {
       const orderHash = hashOffer(offer);
       pintswap.offers.set(orderHash, offer);
       await saveOffers(pintswap);
+      res.json({
+        status: "OK",
+        result: orderHash,
+      });
+    })().catch((err) => {
+      logger.error(err);
+      res.json({
+        status: "NO",
+        result: err.code || 1,
+      });
+    });
+  });
+  rpc.post("/limit", (req, res) => {
+    (async () => {
+      const { givesToken, getsToken, givesAmount, getsAmount } = await fromLimitOrder(req.body, pintswap.signer);
+      const offer = {
+        givesToken,
+        getsToken,
+        givesAmount,
+        getsAmount
+      };
+      const orderHash = hashOffer(offer);
+      pintswap.offers.set(orderHash, offer);
       res.json({
         status: "OK",
         result: orderHash,
