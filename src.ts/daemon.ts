@@ -77,6 +77,7 @@ export async function runServer(app: ReturnType<typeof express>) {
 }
 
 export async function expandValues([token, amount], provider) {
+	console.log(token);
   const tokenRecord = TOKENS.find(
     (v) => [v.symbol, v.name].map((v) => v.toLowerCase()).includes(token.toLowerCase()) || v.address.toLowerCase() === token.toLowerCase()
   );
