@@ -16,4 +16,7 @@ export declare function expandOffer(offer: any, provider: any): Promise<{
     getsToken: string;
     getsAmount: string;
 }>;
+export declare const PINTSWAP_OFFERS_FILEPATH: string;
+export declare function saveOffers(pintswap: any): Promise<void>;
+export declare function loadOffers(): Promise<Map<any, any>>;
 export declare function run(): Promise<void>;

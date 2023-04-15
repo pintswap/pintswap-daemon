@@ -120,6 +120,21 @@ export async function expandOffer(offer, provider) {
   };
 }
 
+export const PINTSWAP_OFFERS_FILEPATH = path.join(PINTSWAP_DIRECTORY, 'offers.json');
+export async function saveOffers(pintswap) {
+  await mkdirp(PINTSWAP_DIRECTORY);
+  const entries = [ ...pintswap.offers.entries() ];
+  await fs.writeFile(PINTSWAP_OFFERS_FILEPATH, JSON.stringify(entries, null, 2));
+}
+
+export async function loadOffers() {
+  await mkdirp(PINTSWAP_DIRECTORY);
+  const exists = await fs.exists(PINTSWAP_OFFERS_FILEPATH);
+  if (exists) return new Map(JSON.parse(await fs.readFile(PINTSWAP_OFFERS_FILEPATH, 'utf8')));
+  else return new Map();
+}
+
+
 export async function run() {
   const wallet = walletFromEnv().connect(providerFromEnv());
   const rpc = express();
@@ -130,7 +145,7 @@ export async function run() {
     signer: wallet,
     peerId,
   });
-  pintswap.offers = new Map();
+  pintswap.offers = await loadOffers();
   await pintswap.startNode();
   logger.info("connected to pintp2p");
   logger.info("using multiaddr: " + peerId.toB58String());
@@ -205,6 +220,7 @@ export async function run() {
       };
       const orderHash = hashOffer(offer);
       pintswap.offers.set(orderHash, offer);
+      await saveOffers(pintswap);
       res.json({
         status: "OK",
         result: orderHash,
@@ -229,11 +245,20 @@ export async function run() {
     });
   });
   rpc.post("/delete", (req, res) => {
-    const { id } = req.body;
-    const result = pintswap.offers.delete(id);
-    res.json({
-      status: "OK",
-      result,
+    (async () => {
+      const { id } = req.body;
+      const result = pintswap.offers.delete(id);
+      await saveOffers(pintswap);
+      res.json({
+        status: "OK",
+        result,
+      });
+    })().catch((err) => {
+      logger.error(err);
+      res.json({
+        status: 'NO',
+	result: err.code
+      });
     });
   });
   pintswap.on("trade:maker", (trade) => {
@@ -243,6 +268,7 @@ export async function run() {
         logger.info("step #" + step);
       });
       await trade.toPromise();
+      await saveOffers(pintswap);
       logger.info("completed execution");
     })().catch((err) => logger.error(err));
   });
