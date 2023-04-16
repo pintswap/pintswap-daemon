@@ -259,6 +259,22 @@ export async function run() {
       });
     });
   });
+  rpc.post('/register', (req, res) => {
+    (async () => {
+      const { name } = req.body;
+      const response = await pintswap.registerName(name);
+      res.json({
+        status: 'OK',
+	result: response.status
+      });
+    })().catch((err) => {
+      logger.error(err);
+      res.json({
+        status: 'NO',
+	result: err.message
+      });
+    });
+  });
   rpc.post("/offers", (req, res) => {
     const offers = [...pintswap.offers].map(([k, v]) => ({
       ...v,
