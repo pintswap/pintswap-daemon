@@ -78,14 +78,20 @@ export async function runServer(app: ReturnType<typeof express>) {
 }
 
 export async function expandValues([token, amount], provider) {
-	console.log(token);
+  console.log(token);
   const tokenRecord = TOKENS.find(
-    (v) => [v.symbol, v.name].map((v) => v.toLowerCase()).includes(token.toLowerCase()) || v.address.toLowerCase() === token.toLowerCase()
+    (v) =>
+      [v.symbol, v.name]
+        .map((v) => v.toLowerCase())
+        .includes(token.toLowerCase()) ||
+      v.address.toLowerCase() === token.toLowerCase()
   );
   if (tokenRecord)
     return [
       ethers.getAddress(tokenRecord.address),
-      ethers.hexlify(ethers.toBeArray(ethers.parseUnits(amount, tokenRecord.decimals))),
+      ethers.hexlify(
+        ethers.toBeArray(ethers.parseUnits(amount, tokenRecord.decimals))
+      ),
     ];
   const address = ethers.getAddress(token);
   const contract = new ethers.Contract(
@@ -95,7 +101,9 @@ export async function expandValues([token, amount], provider) {
   );
   return [
     address,
-    ethers.hexlify(ethers.toBeArray(ethers.parseUnits(amount, await contract.decimals()))),
+    ethers.hexlify(
+      ethers.toBeArray(ethers.parseUnits(amount, await contract.decimals()))
+    ),
   ];
 }
 
@@ -122,20 +130,31 @@ export async function expandOffer(offer, provider) {
   };
 }
 
-export const PINTSWAP_OFFERS_FILEPATH = path.join(PINTSWAP_DIRECTORY, 'offers.json');
-export async function saveOffers(pintswap) {
+export const PINTSWAP_DATA_FILEPATH = path.join(
+  PINTSWAP_DIRECTORY,
+  "data.json"
+);
+export async function saveData(pintswap) {
   await mkdirp(PINTSWAP_DIRECTORY);
-  const entries = [ ...pintswap.offers.entries() ];
-  await fs.writeFile(PINTSWAP_OFFERS_FILEPATH, JSON.stringify(entries, null, 2));
+  const entries = [...pintswap.offers.entries()];
+  await fs.writeFile(PINTSWAP_DATA_FILEPATH, JSON.stringify(entries, null, 2));
 }
 
-export async function loadOffers() {
+export async function loadData() {
   await mkdirp(PINTSWAP_DIRECTORY);
-  const exists = await fs.exists(PINTSWAP_OFFERS_FILEPATH);
-  if (exists) return new Map(JSON.parse(await fs.readFile(PINTSWAP_OFFERS_FILEPATH, 'utf8')));
-  else return new Map();
+  const exists = await fs.exists(PINTSWAP_DATA_FILEPATH);
+  if (exists) {
+    const data = JSON.parse(await fs.readFile(PINTSWAP_DATA_FILEPATH, "utf8"));
+    return {
+      userData: {
+        bio: data.userData.bio || "",
+        image: Buffer.from(data.userData.image, "base64"),
+      },
+      offers: new Map(data.offers.map((v) => [hashOffer(v), v])),
+    };
+  }
+  return null;
 }
-
 
 export async function run() {
   const wallet = walletFromEnv().connect(providerFromEnv());
@@ -147,7 +166,13 @@ export async function run() {
     signer: wallet,
     peerId,
   });
-  pintswap.offers = await loadOffers();
+  Object.assign(
+    pintswap,
+    (await loadData()) || {
+      userData: { bio: "", image: Buffer.from([]) },
+      offers: new Map(),
+    }
+  );
   await pintswap.startNode();
   logger.info("connected to pintp2p");
   logger.info("using multiaddr: " + peerId.toB58String());
@@ -222,7 +247,7 @@ export async function run() {
       };
       const orderHash = hashOffer(offer);
       pintswap.offers.set(orderHash, offer);
-      await saveOffers(pintswap);
+      await saveData(pintswap);
       res.json({
         status: "OK",
         result: orderHash,
@@ -237,16 +262,17 @@ export async function run() {
   });
   rpc.post("/limit", (req, res) => {
     (async () => {
-      const { givesToken, getsToken, givesAmount, getsAmount } = await fromLimitOrder(req.body, pintswap.signer);
+      const { givesToken, getsToken, givesAmount, getsAmount } =
+        await fromLimitOrder(req.body, pintswap.signer);
       const offer = {
         givesToken,
         getsToken,
         givesAmount,
-        getsAmount
+        getsAmount,
       };
       const orderHash = hashOffer(offer);
       pintswap.offers.set(orderHash, offer);
-      await saveOffers(pintswap);
+      await saveData(pintswap);
       res.json({
         status: "OK",
         result: orderHash,
@@ -259,19 +285,43 @@ export async function run() {
       });
     });
   });
-  rpc.post('/register', (req, res) => {
+  rpc.post("/register", (req, res) => {
     (async () => {
       const { name } = req.body;
-      const response = await pintswap.registerName(name);
+      const response: any = await pintswap.registerName(name);
       res.json({
-        status: 'OK',
-	result: response.status
+        status: "OK",
+        result: response.status,
       });
     })().catch((err) => {
       logger.error(err);
       res.json({
-        status: 'NO',
-	result: err.message
+        status: "NO",
+        result: err.message,
+      });
+    });
+  });
+  rpc.post("/set-bio", (req, res) => {
+    const { bio } = req.body;
+    pintswap.setBio(bio);
+    res.json({
+      status: "OK",
+      result: "OK",
+    });
+  });
+  rpc.post("/set-image", (req, res) => {
+    const { image } = req.body;
+    (async () => {
+      pintswap.setImage(await fs.readFile(image));
+      res.json({
+        status: "OK",
+        result: "OK",
+      });
+    })().catch((err) => {
+      logger.error(err);
+      res.json({
+        status: "NO",
+        result: err.message,
       });
     });
   });
@@ -290,7 +340,7 @@ export async function run() {
     (async () => {
       const { id } = req.body;
       const result = pintswap.offers.delete(id);
-      await saveOffers(pintswap);
+      await saveData(pintswap);
       res.json({
         status: "OK",
         result,
@@ -298,8 +348,8 @@ export async function run() {
     })().catch((err) => {
       logger.error(err);
       res.json({
-        status: 'NO',
-	result: err.code
+        status: "NO",
+        result: err.code,
       });
     });
   });
@@ -310,7 +360,7 @@ export async function run() {
         logger.info("step #" + step);
       });
       await trade.toPromise();
-      await saveOffers(pintswap);
+      await saveData(pintswap);
       logger.info("completed execution");
     })().catch((err) => logger.error(err));
   });

@@ -3,6 +3,7 @@ yargs.parserConfiguration({
   'parse-numbers': false
 });
 import fetch from "node-fetch";
+import path from "path";
 
 import { camelCase } from "change-case";
 import url from "url";
@@ -48,9 +49,10 @@ export function optionsFromArgv() {
 }
 
 export async function runCLI() {
-  const payload = optionsFromArgv();
+  const payload: any = optionsFromArgv();
   if (!payload.command) throw Error('no command specified');
   const uri = uriFromEnv();
+  if (payload.options.image && payload.options.image[0] !== '/') payload.options.image = path.join(process.cwd(), payload.options.image);
   const response = await fetch(uri + '/' + payload.command, {
     method: 'POST',
     headers: {
