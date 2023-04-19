@@ -136,8 +136,12 @@ export const PINTSWAP_DATA_FILEPATH = path.join(
 );
 export async function saveData(pintswap) {
   await mkdirp(PINTSWAP_DIRECTORY);
-  const entries = [...pintswap.offers.entries()];
-  await fs.writeFile(PINTSWAP_DATA_FILEPATH, JSON.stringify(entries, null, 2));
+  const data = pintswap.toObject();
+  const toSave = {
+    userData: data.userData,
+    offers: data.offers
+  };
+  await fs.writeFile(PINTSWAP_DATA_FILEPATH, JSON.stringify(toSave, null, 2));
 }
 
 export async function loadData() {
@@ -302,17 +306,27 @@ export async function run() {
     });
   });
   rpc.post("/set-bio", (req, res) => {
+    (async () => {
     const { bio } = req.body;
     pintswap.setBio(bio);
+    await saveData(pintswap);
     res.json({
       status: "OK",
       result: "OK",
+    });
+    })().catch((err) => {
+     logger.error(err);
+     res.json({
+       status: 'NO',
+       result: err.message
+     });
     });
   });
   rpc.post("/set-image", (req, res) => {
     const { image } = req.body;
     (async () => {
       pintswap.setImage(await fs.readFile(image));
+      await saveData(pintswap);
       res.json({
         status: "OK",
         result: "OK",
