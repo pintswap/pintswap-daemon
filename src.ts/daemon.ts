@@ -77,8 +77,8 @@ export async function runServer(app: ReturnType<typeof express>) {
   logger.info("daemon bound to " + uri);
 }
 
-export async function expandValues([token, amount], provider) {
-  console.log(token);
+export async function expandValues([token, amount, tokenId], provider) {
+  if (tokenId) return [ token, amount, tokenId ];
   const tokenRecord = TOKENS.find(
     (v) =>
       [v.symbol, v.name]
@@ -111,22 +111,26 @@ export async function expandOffer(offer, provider) {
   const {
     givesToken: givesTokenRaw,
     givesAmount: givesAmountRaw,
+    givesTokenId: givesTokenIdRaw,
     getsToken: getsTokenRaw,
     getsAmount: getsAmountRaw,
+    getsTokenId: getsTokenIdRaw
   } = offer;
-  const [givesToken, givesAmount] = await expandValues(
-    [givesTokenRaw, givesAmountRaw],
+  const [givesToken, givesAmount, givesTokenId] = await expandValues(
+    [givesTokenRaw, givesAmountRaw, givesTokenIdRaw],
     provider
   );
-  const [getsToken, getsAmount] = await expandValues(
-    [getsTokenRaw, getsAmountRaw],
+  const [getsToken, getsAmount, getsTokenId] = await expandValues(
+    [getsTokenRaw, getsAmountRaw, getsTokenIdRaw],
     provider
   );
   return {
     givesToken,
     givesAmount,
+    givesTokenId,
     getsToken,
     getsAmount,
+    getsTokenId
   };
 }
 
@@ -237,16 +241,18 @@ export async function run() {
   rpc.use(bodyParser.json({ extended: true }));
   rpc.post("/add", (req, res) => {
     (async () => {
-      const { givesToken, getsToken, givesAmount, getsAmount } =
+      const { givesToken, getsToken, givesAmount, getsAmount, givesTokenId, getsTokenId } =
         await expandOffer(req.body, pintswap.signer);
       const offer = {
         gives: {
           token: givesToken,
-          amount: ethers.hexlify(ethers.toBeArray(ethers.getUint(givesAmount))),
+	  tokenId: givesTokenId && ethers.hexlify(ethers.toBeArray(ethers.getUint(givesTokenId))),
+          amount: givesAmount && ethers.hexlify(ethers.toBeArray(ethers.getUint(givesAmount))),
         },
         gets: {
           token: getsToken,
-          amount: ethers.hexlify(ethers.toBeArray(ethers.getUint(getsAmount))),
+	  tokenId: getsTokenId && ethers.hexlify(ethers.toBeArray(ethers.getUint(getsTokenId))),
+          amount: getsAmount && ethers.hexlify(ethers.toBeArray(ethers.getUint(getsAmount))),
         },
       };
       const orderHash = hashOffer(offer);
