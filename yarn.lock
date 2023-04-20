@@ -413,10 +413,10 @@
   resolved "https://registry.yarnpkg.com/@noble/secp256k1/-/secp256k1-1.7.1.tgz#b251c70f824ce3ca7f8dc3df08d58f005cc0507c"
   integrity sha512-hOUk6AyBFmqVrv7k5WAw/LpszxVbj9gGN4JRkIX52fdFAj1UA61KXmZDvqVEm+pOyec3+fIeZB02LYa/pWOArw==
 
-"@pintswap/sdk@^1.2.21":
-  version "1.2.21"
-  resolved "https://registry.yarnpkg.com/@pintswap/sdk/-/sdk-1.2.21.tgz#78f9bb020c12bcc35382f73b739e2c65184909cf"
-  integrity sha512-PuD1NDEFKtZNcHOfSUD9xz7Xo/tGuDI/6/+sTifzW8qNr4i0qb3hvVyEN/qp3ZC4elob4WGGPrrVJKgLxe3xWg==
+"@pintswap/sdk@^1.2.28":
+  version "1.2.28"
+  resolved "https://registry.yarnpkg.com/@pintswap/sdk/-/sdk-1.2.28.tgz#53a854e44e7dd501fcab8563e5d08b79117702dd"
+  integrity sha512-aWxpDxtSGv1yBEIO+Pcfgqitewl7Tvx+5/SSIuezAumaB/u5njueKPIL7dDwc5WJwehwFhfBKrZoKz7T/P7vPw==
   dependencies:
     "@multiformats/multiaddr" "^12.1.0"
     "@noble/ed25519" "^1.6.0"

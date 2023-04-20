@@ -139,7 +139,7 @@ export async function saveData(pintswap) {
   const data = pintswap.toObject();
   const toSave = {
     userData: data.userData,
-    offers: data.offers
+    offers: data.offers,
   };
   await fs.writeFile(PINTSWAP_DATA_FILEPATH, JSON.stringify(toSave, null, 2));
 }
@@ -240,14 +240,14 @@ export async function run() {
       const { givesToken, getsToken, givesAmount, getsAmount } =
         await expandOffer(req.body, pintswap.signer);
       const offer = {
-        givesToken,
-        getsToken,
-        givesAmount: ethers.hexlify(
-          ethers.toBeArray(ethers.getUint(givesAmount))
-        ),
-        getsAmount: ethers.hexlify(
-          ethers.toBeArray(ethers.getUint(getsAmount))
-        ),
+        gives: {
+          token: givesToken,
+          amount: ethers.hexlify(ethers.toBeArray(ethers.getUint(givesAmount))),
+        },
+        gets: {
+          token: getsToken,
+          amount: ethers.hexlify(ethers.toBeArray(ethers.getUint(getsAmount))),
+        },
       };
       const orderHash = hashOffer(offer);
       pintswap.offers.set(orderHash, offer);
@@ -269,10 +269,8 @@ export async function run() {
       const { givesToken, getsToken, givesAmount, getsAmount } =
         await fromLimitOrder(req.body, pintswap.signer);
       const offer = {
-        givesToken,
-        getsToken,
-        givesAmount,
-        getsAmount,
+        gives: { token: givesToken, amount: givesAmount },
+        gets: { token: getsToken, amount: getsAmount },
       };
       const orderHash = hashOffer(offer);
       pintswap.offers.set(orderHash, offer);
@@ -307,19 +305,19 @@ export async function run() {
   });
   rpc.post("/set-bio", (req, res) => {
     (async () => {
-    const { bio } = req.body;
-    pintswap.setBio(bio);
-    await saveData(pintswap);
-    res.json({
-      status: "OK",
-      result: "OK",
-    });
+      const { bio } = req.body;
+      pintswap.setBio(bio);
+      await saveData(pintswap);
+      res.json({
+        status: "OK",
+        result: "OK",
+      });
     })().catch((err) => {
-     logger.error(err);
-     res.json({
-       status: 'NO',
-       result: err.message
-     });
+      logger.error(err);
+      res.json({
+        status: "NO",
+        result: err.message,
+      });
     });
   });
   rpc.post("/set-image", (req, res) => {

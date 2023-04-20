@@ -61,5 +61,5 @@ export async function runCLI() {
     body: JSON.stringify(payload.options)
   });
   const json = await response.json();
-  console.log(JSON.stringify(json.result, null, 2));
+  console.log(typeof json.result === 'string' ? json.result : JSON.stringify(json.result, null, 2));
 }
