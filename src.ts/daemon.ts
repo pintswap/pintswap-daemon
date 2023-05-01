@@ -83,6 +83,7 @@ export async function runServer(app: ReturnType<typeof express>) {
 export async function expandValues([token, amount, tokenId], provider) {
   if (tokenId) return [ token, amount, tokenId ];
   const { chainId } = await provider.getNetwork();
+  console.log(chainId);
   const tokenRecord = TOKENS_BY_ID[chainId].find(
     (v) =>
       [v.symbol, v.name]
