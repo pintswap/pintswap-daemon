@@ -8,8 +8,9 @@ import bodyParser from "body-parser";
 import url from "url";
 import PeerId from "peer-id";
 import fs from "fs-extra";
-import { TOKENS } from "./token-list";
+import { TOKENS_BY_ID } from "./token-list";
 import { fromLimitOrder } from "./orderbook";
+import { ZkSyncProvider } from "ethers-v6-zksync-compat";
 
 export function providerFromChainId(chainId) {
   switch (Number(chainId)) {
@@ -21,6 +22,8 @@ export function providerFromChainId(chainId) {
       return new ethers.InfuraProvider("optimism");
     case 137:
       return new ethers.InfuraProvider("polygon");
+    case 324:
+      return new ZkSyncProvider();
   }
   throw Error("chainid " + chainId + " not supported");
 }
@@ -79,7 +82,8 @@ export async function runServer(app: ReturnType<typeof express>) {
 
 export async function expandValues([token, amount, tokenId], provider) {
   if (tokenId) return [ token, amount, tokenId ];
-  const tokenRecord = TOKENS.find(
+  const { chainId } = await provider.getNetwork();
+  const tokenRecord = TOKENS_BY_ID[chainId].find(
     (v) =>
       [v.symbol, v.name]
         .map((v) => v.toLowerCase())
