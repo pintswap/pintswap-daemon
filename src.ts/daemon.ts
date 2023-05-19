@@ -80,7 +80,7 @@ export async function runServer(app: ReturnType<typeof express>) {
   const port = process.env.PINTSWAP_DAEMON_PORT || 42161;
   const uri = hostname + ":" + port;
   await new Promise<void>((resolve, reject) => {
-    app.listen(port, hostname, (err) => (err ? reject(err) : resolve()));
+    (app.listen as any)(port, hostname, (err) => (err ? reject(err) : resolve()));
   });
   logger.info("daemon bound to " + uri);
 }
@@ -247,7 +247,7 @@ export async function run() {
       result: "OK",
     });
   });
-  rpc.use(bodyParser.json({ extended: true }));
+  rpc.use(bodyParser.json({ extended: true } as any));
   rpc.post("/add", (req, res) => {
     (async () => {
       const { givesToken, getsToken, givesAmount, getsAmount, givesTokenId, getsTokenId } =
