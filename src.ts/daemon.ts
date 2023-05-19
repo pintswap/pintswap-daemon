@@ -28,6 +28,11 @@ export function providerFromChainId(chainId) {
   throw Error("chainid " + chainId + " not supported");
 }
 
+export function toProvider(p) {
+  if (p.getAddress) return p.provider;
+  return p;
+};
+
 export const logger: any = createLogger("pintswap-daemon");
 
 export function walletFromEnv() {
@@ -82,8 +87,7 @@ export async function runServer(app: ReturnType<typeof express>) {
 
 export async function expandValues([token, amount, tokenId], provider) {
   if (tokenId) return [ token, amount, tokenId ];
-  const { chainId } = await provider.getNetwork();
-  console.log(chainId);
+  const { chainId } = await toProvider(provider).getNetwork();
   const tokenRecord = TOKENS_BY_ID[chainId].find(
     (v) =>
       [v.symbol, v.name]
@@ -382,6 +386,7 @@ export async function run() {
       trade.on("progress", (step) => {
         logger.info("step #" + step);
       });
+      trade.on('error', (err) => {});
       await trade.toPromise();
       await saveData(pintswap);
       logger.info("completed execution");

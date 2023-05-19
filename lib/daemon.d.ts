@@ -4,6 +4,7 @@ import { ethers } from "ethers";
 import PeerId from "peer-id";
 import { ZkSyncProvider } from "ethers-v6-zksync-compat";
 export declare function providerFromChainId(chainId: any): ethers.InfuraProvider | ZkSyncProvider;
+export declare function toProvider(p: any): any;
 export declare const logger: any;
 export declare function walletFromEnv(): ethers.Wallet | ethers.HDNodeWallet;
 export declare function providerFromEnv(): ethers.InfuraProvider | ZkSyncProvider;

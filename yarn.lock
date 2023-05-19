@@ -413,10 +413,10 @@
   resolved "https://registry.yarnpkg.com/@noble/secp256k1/-/secp256k1-1.7.1.tgz#b251c70f824ce3ca7f8dc3df08d58f005cc0507c"
   integrity sha512-hOUk6AyBFmqVrv7k5WAw/LpszxVbj9gGN4JRkIX52fdFAj1UA61KXmZDvqVEm+pOyec3+fIeZB02LYa/pWOArw==
 
-"@pintswap/sdk@^1.2.41":
-  version "1.2.41"
-  resolved "https://registry.yarnpkg.com/@pintswap/sdk/-/sdk-1.2.41.tgz#516efb3bb6d4aac83efa594ef38191886bd185ec"
-  integrity sha512-gdSt8dY3KwhKSH9MiuPBgjMEwVBPWEv3RICu6wTUwWHzACKxd6wdHZWS0VoKamRxKKMZdFn+UImCU04QLSEJaw==
+"@pintswap/sdk@^1.3.2":
+  version "1.3.2"
+  resolved "https://registry.yarnpkg.com/@pintswap/sdk/-/sdk-1.3.2.tgz#ae830070a517dd024e1df2e10f1cbb2cd62d990c"
+  integrity sha512-SzGsuDw1ugxL+y4ui198+63udaDWRqI/+1QQn6QcnrvpC4LktbO8QehB0cHRGHQUqpMuc+ZjnGY3br2EqOgIXg==
   dependencies:
     "@multiformats/multiaddr" "^12.1.0"
     "@noble/ed25519" "^1.6.0"
@@ -430,7 +430,6 @@
     canonical-weth "^1.4.0"
     chai "^4.2.0"
     cross-fetch "^3.1.5"
-    cryptico-js "^1.1.0"
     emasm "https://github.com/kungfuflex/emasm"
     ethers "^6.1.0"
     is-browser "^2.1.0"
@@ -445,7 +444,6 @@
     libp2p-websockets "^0.16.2"
     lodash "^4.17.21"
     nice-repl "^0.1.2"
-    peer-id "^0.16.0"
     peer-info "^0.17.5"
     process "^0.11.10"
     ristretto255 "^0.1.2"
@@ -1362,11 +1360,6 @@ cross-spawn@^7.0.3:
     path-key "^3.1.0"
     shebang-command "^2.0.0"
     which "^2.0.1"
-
-cryptico-js@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/cryptico-js/-/cryptico-js-1.1.0.tgz#8b333e23aaddfce819fd2f5e49043f81397531d6"
-  integrity sha512-ODVGwsGIHOCfOYhM60uf3UvmGI7UR5K+Y7uoPfH8wRC0gd1pbWuEW5dR7qOZdSO5vLLORYi1G90gd22lGT/5Zw==
 
 crypto-js@3.3.0:
   version "3.3.0"
