@@ -263,6 +263,8 @@ export async function run() {
           amount: getsAmount && ethers.hexlify(ethers.toBeArray(ethers.getUint(getsAmount))),
         },
       };
+      if (offer.gives.tokenId === undefined) delete offer.gives.tokenId;
+      if (offer.gets.tokenId === undefined) delete offer.gets.tokenId;
       const orderHash = hashOffer(offer);
       pintswap.offers.set(orderHash, offer);
       await saveData(pintswap);
