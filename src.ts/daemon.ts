@@ -250,8 +250,7 @@ export async function run() {
   rpc.use(bodyParser.json({ extended: true } as any));
   rpc.post("/add", (req, res) => {
     (async () => {
-      const { givesToken, getsToken, givesAmount, getsAmount, givesTokenId, getsTokenId } =
-        await expandOffer(req.body, pintswap.signer);
+      const { givesToken, getsToken, givesAmount, getsAmount, givesTokenId, getsTokenId } = req.body;
       const offer = {
         gives: {
           token: givesToken,
