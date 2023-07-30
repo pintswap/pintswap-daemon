@@ -381,6 +381,24 @@ export async function run() {
       });
     });
   });
+  rpc.post('/clear', (req, res) => {
+    (async () => {
+      for (const [ key ] of pintswap.offers.entries()) {
+        pintswap.offers.delete(key);
+      }
+      await saveData(pintswap);
+      res.json({
+        status: "OK",
+        result: 0
+      });
+    })().catch((err) => {
+      logger.error(err);
+      res.json({
+        status: "NO",
+        result: err.code
+      });
+    });
+  });
   pintswap.on("trade:maker", (trade) => {
     (async () => {
       logger.info("starting trade");
