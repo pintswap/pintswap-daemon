@@ -1671,6 +1671,10 @@ escape-string-regexp@^1.0.5:
   resolved "https://registry.yarnpkg.com/escape-string-regexp/-/escape-string-regexp-1.0.5.tgz#1b61c0562190a8dff6ae3bb2cf0200ca130b86d4"
   integrity sha512-vbRorB5FUQWvla16U8R/qgaFIya2qGzwDrNmCZuYKrbdSUMG6I1ZCGQRefkRVhuOkIGVne7BQ35DSfo1qvJqFg==
 
+"estimate-hypothetical-gas@https://github.com/pintswap/estimate-hypothetical-gas":
+  version "0.1.0"
+  resolved "https://github.com/pintswap/estimate-hypothetical-gas#781dc0776dfcc6e793f9e2d6b9e68c1e7cd9dcc9"
+
 etag@~1.8.1:
   version "1.8.1"
   resolved "https://registry.yarnpkg.com/etag/-/etag-1.8.1.tgz#41ae2eeb65efa62268aebfea83ac7d79299b0887"

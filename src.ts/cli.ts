@@ -9,6 +9,7 @@ import { camelCase } from "change-case";
 import url from "url";
 import util from "util";
 import { createLogger } from "@pintswap/sdk/lib/logger";
+import { chunk } from "lodash";
 import { ethers } from "ethers";
 
 export const logger: any = createLogger('pintswap-cli');
@@ -53,6 +54,7 @@ export async function runCLI() {
   if (!payload.command) throw Error('no command specified');
   const uri = uriFromEnv();
   if (payload.options.image && payload.options.image[0] !== '/') payload.options.image = path.join(process.cwd(), payload.options.image);
+  if (payload.command === 'trade') chunk(payload.options.trades.split(','), 2).map((v) => ({ amount: v[1], offerHash: v[0] }));
   const response = await fetch(uri + '/' + payload.command, {
     method: 'POST',
     headers: {

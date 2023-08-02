@@ -18,6 +18,7 @@
     "@pintswap/sdk": "^1.4.11",
     "body-parser": "^1.20.2",
     "change-case": "^4.1.2",
+    "estimate-hypothetical-gas": "https://github.com/pintswap/estimate-hypothetical-gas",
     "ethers": "^6.3.0",
     "ethers-v6-zksync-compat": "https://github.com/pintswap/ethers-v6-zksync-compat",
     "express": "^4.18.2",

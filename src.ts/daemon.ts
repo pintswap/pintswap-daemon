@@ -1,6 +1,6 @@
 import express from "express";
 import { createLogger } from "@pintswap/sdk/lib/logger";
-import { ethers } from "ethers";
+import { ethers, Transaction } from "ethers";
 import { hashOffer, Pintswap } from "@pintswap/sdk";
 import { mkdirp } from "mkdirp";
 import path from "path";
@@ -11,6 +11,9 @@ import fs from "fs-extra";
 import { TOKENS_BY_ID } from "./token-list";
 import { fromLimitOrder } from "./orderbook";
 import { ZkSyncProvider } from "ethers-v6-zksync-compat";
+import { estimateGas } from "estimate-hypothetical-gas";
+
+const flashbotsProvider = new ethers.JsonRpcProvider('https://relay.flashbots.net');
 
 export function providerFromChainId(chainId) {
   switch (Number(chainId)) {
@@ -31,7 +34,7 @@ export function providerFromChainId(chainId) {
 export function toProvider(p) {
   if (p.getAddress) return p.provider;
   return p;
-};
+}
 
 export const logger: any = createLogger("pintswap-daemon");
 
@@ -51,26 +54,26 @@ export function providerFromEnv() {
 
 export const PINTSWAP_DIRECTORY = path.join(
   process.env.HOME,
-  ".pintswap-daemon"
+  ".pintswap-daemon",
 );
 
 export const PINTSWAP_PEERID_FILEPATH = path.join(
   PINTSWAP_DIRECTORY,
-  "peer-id.json"
+  "peer-id.json",
 );
 
 export async function loadOrCreatePeerId() {
   await mkdirp(PINTSWAP_DIRECTORY);
   if (await fs.exists(PINTSWAP_PEERID_FILEPATH)) {
     return await PeerId.createFromJSON(
-      JSON.parse(await fs.readFile(PINTSWAP_PEERID_FILEPATH, "utf8"))
+      JSON.parse(await fs.readFile(PINTSWAP_PEERID_FILEPATH, "utf8")),
     );
   }
   logger.info("generating PeerId ...");
   const peerId = await PeerId.create();
   await fs.writeFile(
     PINTSWAP_PEERID_FILEPATH,
-    JSON.stringify(peerId.toJSON(), null, 2)
+    JSON.stringify(peerId.toJSON(), null, 2),
   );
   return peerId;
 }
@@ -80,38 +83,40 @@ export async function runServer(app: ReturnType<typeof express>) {
   const port = process.env.PINTSWAP_DAEMON_PORT || 42161;
   const uri = hostname + ":" + port;
   await new Promise<void>((resolve, reject) => {
-    (app.listen as any)(port, hostname, (err) => (err ? reject(err) : resolve()));
+    (app.listen as any)(port, hostname, (err) =>
+      err ? reject(err) : resolve(),
+    );
   });
   logger.info("daemon bound to " + uri);
 }
 
 export async function expandValues([token, amount, tokenId], provider) {
-  if (tokenId) return [ token, amount, tokenId ];
+  if (tokenId) return [token, amount, tokenId];
   const { chainId } = await toProvider(provider).getNetwork();
   const tokenRecord = TOKENS_BY_ID[chainId].find(
     (v) =>
       [v.symbol, v.name]
         .map((v) => v.toLowerCase())
         .includes(token.toLowerCase()) ||
-      v.address.toLowerCase() === token.toLowerCase()
+      v.address.toLowerCase() === token.toLowerCase(),
   );
   if (tokenRecord)
     return [
       ethers.getAddress(tokenRecord.address),
       ethers.hexlify(
-        ethers.toBeArray(ethers.parseUnits(amount, tokenRecord.decimals))
+        ethers.toBeArray(ethers.parseUnits(amount, tokenRecord.decimals)),
       ),
     ];
   const address = ethers.getAddress(token);
   const contract = new ethers.Contract(
     address,
     ["function decimals() view returns (uint8)"],
-    provider
+    provider,
   );
   return [
     address,
     ethers.hexlify(
-      ethers.toBeArray(ethers.parseUnits(amount, await contract.decimals()))
+      ethers.toBeArray(ethers.parseUnits(amount, await contract.decimals())),
     ),
   ];
 }
@@ -123,15 +128,15 @@ export async function expandOffer(offer, provider) {
     givesTokenId: givesTokenIdRaw,
     getsToken: getsTokenRaw,
     getsAmount: getsAmountRaw,
-    getsTokenId: getsTokenIdRaw
+    getsTokenId: getsTokenIdRaw,
   } = offer;
   const [givesToken, givesAmount, givesTokenId] = await expandValues(
     [givesTokenRaw, givesAmountRaw, givesTokenIdRaw],
-    provider
+    provider,
   );
   const [getsToken, getsAmount, getsTokenId] = await expandValues(
     [getsTokenRaw, getsAmountRaw, getsTokenIdRaw],
-    provider
+    provider,
   );
   return {
     givesToken,
@@ -139,13 +144,13 @@ export async function expandOffer(offer, provider) {
     givesTokenId,
     getsToken,
     getsAmount,
-    getsTokenId
+    getsTokenId,
   };
 }
 
 export const PINTSWAP_DATA_FILEPATH = path.join(
   PINTSWAP_DIRECTORY,
-  "data.json"
+  "data.json",
 );
 export async function saveData(pintswap) {
   await mkdirp(PINTSWAP_DIRECTORY);
@@ -188,7 +193,7 @@ export async function run() {
     (await loadData()) || {
       userData: { bio: "", image: Buffer.from([]) },
       offers: new Map(),
-    }
+    },
   );
   await pintswap.startNode();
   logger.info("connected to pintp2p");
@@ -222,22 +227,79 @@ export async function run() {
       });
     })().catch((err) => logger.error(err));
   });
-  rpc.post('/trade', async (req, res) => {
-    const {
-      trades,
-      peer
-    } = req.body;
-    const promise = pintswap.createBatchTrade(peer, trades).toPromise();
+  rpc.post("/trade", async (req, res) => {
+    let { broadcast, trades, peer } = req.body;
     try {
+      if (peer.indexOf(".")) peer = await pintswap.resolveName(peer);
+      const txs = [];
+      const pintswapProxy = Object.create(pintswap);
+      const signerProxy = (pintswapProxy.signer = Object.create(
+        pintswap.signer,
+      ));
+      const providerProxy = (signerProxy.provider = Object.create(
+        pintswapProxy.signer.provider,
+      ));
+      const logTx = (v) => {
+        pintswap.logger.info("signed tx:");
+        pintswap.logger.info(v);
+        return v;
+      };
+      providerProxy.broadcastTransaction = async function (...args) {
+        const [serializedTransaction] = args;
+        const tx = Transaction.from(serializedTransaction);
+        if (!tx.to) {
+          txs.push(
+            logTx({
+              sharedAddress: tx.from,
+              type: "trade",
+              transaction: serializedTransaction,
+            }),
+          );
+        } else if (!tx.data) {
+          txs.push(
+            logTx({
+              sharedAddress: tx.to,
+              type: "gas",
+              transaction: serializedTransaction,
+            }),
+          );
+        } else {
+          txs.push(
+            logTx({
+              sharedAddress: tx.to,
+              type: "deposit",
+              transaction: serializedTransaction,
+            }),
+          );
+        }
+        return {
+          async wait() {
+            return {};
+          },
+        };
+      };
+      providerProxy.estimateGas = estimateGas.bind(
+        null,
+        pintswap.signer.provider,
+      );
+      const promise = pintswap.createBatchTrade(peer, trades).toPromise();
       await promise;
+      let result;
+      if (broadcast) {
+	const blockNumber = await providerProxy.getBlockNumber();
+	result = await flashbotsProvider.send('eth_sendBundle', [{        
+          txs: txs.map((v) => v.transaction),
+          targetBlock: blockNumber + 1
+	}]);
+      } else result = JSON.stringify(txs);
       res.json({
-        status: 'OK',
-	result: 'OK'
+        status: "OK",
+        result
       });
     } catch (e) {
       res.json({
-        status: 'NO',
-	result: e.message
+        status: "NO",
+        result: e.message,
       });
     }
   });
@@ -269,17 +331,32 @@ export async function run() {
   rpc.use(bodyParser.json({ extended: true } as any));
   rpc.post("/add", (req, res) => {
     (async () => {
-      const { givesToken, getsToken, givesAmount, getsAmount, givesTokenId, getsTokenId } = req.body;
+      const {
+        givesToken,
+        getsToken,
+        givesAmount,
+        getsAmount,
+        givesTokenId,
+        getsTokenId,
+      } = req.body;
       const offer = {
         gives: {
           token: givesToken,
-	  tokenId: givesTokenId && ethers.hexlify(ethers.toBeArray(ethers.getUint(givesTokenId))),
-          amount: givesAmount && ethers.hexlify(ethers.toBeArray(ethers.getUint(givesAmount))),
+          tokenId:
+            givesTokenId &&
+            ethers.hexlify(ethers.toBeArray(ethers.getUint(givesTokenId))),
+          amount:
+            givesAmount &&
+            ethers.hexlify(ethers.toBeArray(ethers.getUint(givesAmount))),
         },
         gets: {
           token: getsToken,
-	  tokenId: getsTokenId && ethers.hexlify(ethers.toBeArray(ethers.getUint(getsTokenId))),
-          amount: getsAmount && ethers.hexlify(ethers.toBeArray(ethers.getUint(getsAmount))),
+          tokenId:
+            getsTokenId &&
+            ethers.hexlify(ethers.toBeArray(ethers.getUint(getsTokenId))),
+          amount:
+            getsAmount &&
+            ethers.hexlify(ethers.toBeArray(ethers.getUint(getsAmount))),
         },
       };
       if (offer.gives.tokenId === undefined) delete offer.gives.tokenId;
@@ -400,21 +477,21 @@ export async function run() {
       });
     });
   });
-  rpc.post('/clear', (req, res) => {
+  rpc.post("/clear", (req, res) => {
     (async () => {
-      for (const [ key ] of pintswap.offers.entries()) {
+      for (const [key] of pintswap.offers.entries()) {
         pintswap.offers.delete(key);
       }
       await saveData(pintswap);
       res.json({
         status: "OK",
-        result: 0
+        result: 0,
       });
     })().catch((err) => {
       logger.error(err);
       res.json({
         status: "NO",
-        result: err.code
+        result: err.code,
       });
     });
   });
@@ -424,7 +501,7 @@ export async function run() {
       trade.on("progress", (step) => {
         logger.info("step #" + step);
       });
-      trade.on('error', (err) => {});
+      trade.on("error", (err) => {});
       await trade.toPromise();
       await saveData(pintswap);
       logger.info("completed execution");
