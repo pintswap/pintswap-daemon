@@ -222,6 +222,25 @@ export async function run() {
       });
     })().catch((err) => logger.error(err));
   });
+  rpc.post('/trade', async (req, res) => {
+    const {
+      trades,
+      peer
+    } = req.body;
+    const promise = pintswap.createBatchTrade(peer, trades).toPromise();
+    try {
+      await promise;
+      res.json({
+        status: 'OK',
+	result: 'OK'
+      });
+    } catch (e) {
+      res.json({
+        status: 'NO',
+	result: e.message
+      });
+    }
+  });
   rpc.post("/unsubscribe", async (req, res) => {
     (async () => {
       await pintswap.pubsub.unsubscribe("/pintswap/0.1.0/publish-orders");
