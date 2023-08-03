@@ -218,7 +218,10 @@ export async function run() {
     delete req.body[0];
     res.json = function (...args) {
       const [ o ] = args;
-      logger.debug(o);
+      if (o.status === "NO") {
+        o.result = process.env.NODE_ENV === 'production' ? "NO" : o.result.stack;
+	logger.error(o.result);
+      } else logger.debug(o);
       json.apply(res, args);
     };
     logger.info(req.method + '|' + req.originalUrl);
@@ -273,7 +276,7 @@ export async function run() {
           result: resolved,
         });
       } catch (e) {
-        res.json({ status: "NO", result: e.message });
+        res.json({ status: "NO", result: e });
       }
     })().catch((err) => logger.error(err));
   });
@@ -284,6 +287,7 @@ export async function run() {
         if (peer.match(".")) peer = await pintswap.resolveName(peer);
 	const peerObject = await pintswap.getUserDataByPeerId(peer);
 	delete peerObject.image;
+	peerObject.offers = peerObject.offers.map(({ gets, gives }) => ({ gets, gives, id: hashOffer({ gets, gives }) }));
         const result = JSON.stringify(
           peerObject,
           null,
@@ -294,14 +298,14 @@ export async function run() {
           result,
         });
       } catch (e) {
-        res.json({ status: "NO", result: e.message });
+        res.json({ status: "NO", result: e });
       }
     })().catch((err) => logger.error(err));
   });
-  rpc.post("/orders", (req, res) => {
+  rpc.post("/offers", (req, res) => {
     (async () => {
       try {
-        const peers = [ ...pintswap.peers.entries() ].filter(([key]) => !key.match('::'));
+        const peers = [ ...pintswap.peers.entries() ].filter(([key]) => !key.match('::')).map((v) => [ v[0], v[1][1].map(({ gets, gives }) => ({ gets, gives, id: hashOffer({ gets, gives }) })) ]);
 	res.json({
           status: "OK",
 	  result: JSON.stringify(peers, null, 2)
@@ -309,7 +313,7 @@ export async function run() {
       } catch (e) {
         res.json({
           status: "OK",
-	  result: e.message
+	  result: e
 	});
       }
     })().catch((err) => logger.error(err));
@@ -325,7 +329,7 @@ export async function run() {
 	res.send(Buffer.from(peerObject.image as any) as any);
 	res.end('');
       } catch (e) {
-        res.json({ status: "NO", result: e.message });
+        res.json({ status: "NO", result: e });
       }
     })().catch((err) => logger.error(err));
   });
@@ -411,7 +415,7 @@ export async function run() {
     } catch (e) {
       res.json({
         status: "NO",
-        result: e.message,
+        result: e,
       });
     }
   });
