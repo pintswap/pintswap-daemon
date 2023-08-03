@@ -12,8 +12,12 @@ import { TOKENS_BY_ID } from "./token-list";
 import { fromLimitOrder } from "./orderbook";
 import { ZkSyncProvider } from "ethers-v6-zksync-compat";
 import { estimateGas } from "estimate-hypothetical-gas";
+import { createServer } from "http";
+import { WebSocket, WebSocketServer } from "ws";
 
-const flashbotsProvider = new ethers.JsonRpcProvider('https://relay.flashbots.net');
+const flashbotsProvider = new ethers.JsonRpcProvider(
+  "https://relay.flashbots.net",
+);
 
 export function providerFromChainId(chainId) {
   switch (Number(chainId)) {
@@ -37,6 +41,33 @@ export function toProvider(p) {
 }
 
 export const logger: any = createLogger("pintswap-daemon");
+
+export const bindLogger = (
+  logger: ReturnType<typeof createLogger>,
+  wsServer: WebSocketServer,
+) => {
+  ["debug", "info", "error"].forEach((logLevel) => {
+    const fn = logger[logLevel];
+    logger[logLevel] = function (...args) {
+      const [v] = args;
+      const timestamp = Date.now();
+      wsServer.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN)
+          client.send(
+            JSON.stringify({
+              type: "log",
+              message: {
+                logLevel,
+                timestamp,
+                data: v,
+              },
+            }),
+          );
+      });
+      fn.apply(logger, args);
+    };
+  });
+};
 
 export function walletFromEnv() {
   const WALLET = process.env.PINTSWAP_DAEMON_WALLET;
@@ -78,12 +109,12 @@ export async function loadOrCreatePeerId() {
   return peerId;
 }
 
-export async function runServer(app: ReturnType<typeof express>) {
+export async function runServer(server: ReturnType<typeof createServer>) {
   const hostname = process.env.PINTSWAP_DAEMON_HOST || "127.0.0.1";
   const port = process.env.PINTSWAP_DAEMON_PORT || 42161;
   const uri = hostname + ":" + port;
   await new Promise<void>((resolve, reject) => {
-    (app.listen as any)(port, hostname, (err) =>
+    (server.listen as any)(port, hostname, (err) =>
       err ? reject(err) : resolve(),
     );
   });
@@ -181,13 +212,17 @@ export async function loadData() {
 export async function run() {
   const wallet = walletFromEnv().connect(providerFromEnv());
   const rpc = express();
+  const server = createServer(rpc);
+  const wsServer = new WebSocketServer({ server });
   const peerId = await loadOrCreatePeerId();
   logger.info("using wallet: " + wallet.address);
+  bindLogger(logger, wsServer);
   const pintswap = new Pintswap({
     awaitReceipts: true,
     signer: wallet,
     peerId,
   });
+  pintswap.logger = logger;
   Object.assign(
     pintswap,
     (await loadData()) || {
@@ -282,19 +317,20 @@ export async function run() {
         null,
         pintswap.signer.provider,
       );
-      const promise = pintswap.createBatchTrade(peer, trades).toPromise();
-      await promise;
+      await pintswap.createBatchTrade(peer, trades).toPromise();
       let result;
       if (broadcast) {
-	const blockNumber = await providerProxy.getBlockNumber();
-	result = await flashbotsProvider.send('eth_sendBundle', [{        
-          txs: txs.map((v) => v.transaction),
-          targetBlock: blockNumber + 1
-	}]);
+        const blockNumber = await providerProxy.getBlockNumber();
+        result = await flashbotsProvider.send("eth_sendBundle", [
+          {
+            txs: txs.map((v) => v.transaction),
+            targetBlock: blockNumber + 1,
+          },
+        ]);
       } else result = JSON.stringify(txs);
       res.json({
         status: "OK",
-        result
+        result,
       });
     } catch (e) {
       res.json({
@@ -507,5 +543,5 @@ export async function run() {
       logger.info("completed execution");
     })().catch((err) => logger.error(err));
   });
-  await runServer(rpc);
+  await runServer(server);
 }

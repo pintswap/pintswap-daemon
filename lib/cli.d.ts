@@ -1,4 +1,5 @@
 export declare const logger: any;
+export declare const daemonLogger: any;
 export declare const SUBSTITUTIONS: {
     ETH: string;
 };

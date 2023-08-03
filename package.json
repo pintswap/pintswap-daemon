@@ -17,6 +17,7 @@
   "dependencies": {
     "@pintswap/sdk": "^1.4.11",
     "body-parser": "^1.20.2",
+    "bufferutil": "^4.0.7",
     "change-case": "^4.1.2",
     "estimate-hypothetical-gas": "https://github.com/pintswap/estimate-hypothetical-gas",
     "ethers": "^6.3.0",
@@ -26,6 +27,8 @@
     "mkdirp": "^3.0.0",
     "node-fetch": "2",
     "peer-id": "^0.16.0",
+    "utf-8-validate": "^6.0.3",
+    "ws": "^8.13.0",
     "yargs": "^17.7.1"
   },
   "devDependencies": {
