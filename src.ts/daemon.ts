@@ -212,11 +212,9 @@ export async function loadData() {
 export async function run() {
   const wallet = walletFromEnv().connect(providerFromEnv());
   const rpc = express();
-  const server = createServer(rpc);
-  const wsServer = new WebSocketServer({ server });
+  rpc.use(bodyParser.json({ extended: true } as any));
   const peerId = await loadOrCreatePeerId();
   logger.info("using wallet: " + wallet.address);
-  bindLogger(logger, wsServer);
   const pintswap = new Pintswap({
     awaitReceipts: true,
     signer: wallet,
@@ -253,7 +251,56 @@ export async function run() {
       result: "OK",
     });
   });
-  rpc.post("/subscribe", async (req, res) => {
+  rpc.post("/resolve", (req, res) => {
+    (async () => {
+      try {
+        const { name } = req.body;
+        const resolved = await pintswap.resolveName(name);
+        res.json({
+          status: "OK",
+          result: resolved,
+        });
+      } catch (e) {
+        res.json({ status: "NO", result: e.message });
+      }
+    })().catch((err) => logger.error(err));
+  });
+  rpc.post("/peer", (req, res) => {
+    (async () => {
+      try {
+        let { peer } = req.body;
+        if (peer.match(".")) peer = await pintswap.resolveName(peer);
+	const peerObject = await pintswap.getUserDataByPeerId(peer);
+	delete peerObject.image;
+        const result = JSON.stringify(
+          peerObject,
+          null,
+          2,
+        );
+        res.json({
+          status: "OK",
+          result,
+        });
+      } catch (e) {
+        res.json({ status: "NO", result: e.message });
+      }
+    })().catch((err) => logger.error(err));
+  });
+  rpc.post("/peer-image", (req, res) => {
+    (async () => {
+      try {
+        let { peer } = req.body;
+        if (peer.match(".")) peer = await pintswap.resolveName(peer);
+	const peerObject = await pintswap.getUserDataByPeerId(peer);
+	res.setHeader('content-type', 'image/x-png');
+	res.send(Buffer.from(peerObject.image as any) as any);
+	res.end('');
+      } catch (e) {
+        res.json({ status: "NO", result: e.message });
+      }
+    })().catch((err) => logger.error(err));
+  });
+  rpc.post("/subscribe", (req, res) => {
     (async () => {
       await pintswap.subscribeOffers();
       res.json({
@@ -364,7 +411,6 @@ export async function run() {
       result: "OK",
     });
   });
-  rpc.use(bodyParser.json({ extended: true } as any));
   rpc.post("/add", (req, res) => {
     (async () => {
       const {
@@ -543,5 +589,8 @@ export async function run() {
       logger.info("completed execution");
     })().catch((err) => logger.error(err));
   });
+  const server = createServer(rpc);
+  const wsServer = new WebSocketServer({ server });
+  bindLogger(logger, wsServer);
   await runServer(server);
 }

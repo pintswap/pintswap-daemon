@@ -36,7 +36,7 @@ export function uriFromEnv() {
 
 export function toWsUri(uri) {
   const parsed = url.parse(uri);
-  const o = { ...parsed, protocol: 'ws:' };
+  const o = { ...parsed, protocol: "ws:" };
   delete o.pathname;
   return url.format(o);
 }
@@ -78,8 +78,8 @@ export async function runCLI() {
       }
     });
     await new Promise((resolve, reject) => {
-      ws.on('close', resolve);
-      ws.on('error', reject);
+      ws.on("close", resolve);
+      ws.on("error", reject);
     });
   } else {
     const response = await fetch(uri + "/" + payload.command, {
@@ -89,11 +89,15 @@ export async function runCLI() {
       },
       body: JSON.stringify(payload.options),
     });
-    const json = await response.json();
-    console.log(
-      typeof json.result === "string"
-        ? json.result
-        : JSON.stringify(json.result, null, 2),
-    );
+    if (payload.command === "peer-image") {
+      process.stdout.write(Buffer.from(await (await response.blob()).arrayBuffer()));
+    } else {
+      const json = await response.json();
+      console.log(
+        typeof json.result === "string"
+          ? json.result
+          : JSON.stringify(json.result, null, 2),
+      );
+    }
   }
 }
