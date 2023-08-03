@@ -302,7 +302,7 @@ export async function run() {
       }
     })().catch((err) => logger.error(err));
   });
-  rpc.post("/offers", (req, res) => {
+  rpc.post("/orderbook", (req, res) => {
     (async () => {
       try {
         const peers = [ ...pintswap.peers.entries() ].filter(([key]) => !key.match('::')).map((v) => [ v[0], v[1][1].map(({ gets, gives }) => ({ gets, gives, id: hashOffer({ gets, gives }) })) ]);
@@ -567,8 +567,7 @@ export async function run() {
   rpc.post("/offers", (req, res) => {
     const offers = [...pintswap.offers].map(([k, v]) => ({
       ...v,
-      id: k,
-      link: "https://pintswap.eth.limo/#/" + peerId.toB58String() + "/" + k,
+      id: k
     }));
     res.json({
       status: "OK",
