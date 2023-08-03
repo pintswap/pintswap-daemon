@@ -34,6 +34,13 @@ export function uriFromEnv() {
   return uri;
 }
 
+export function toWsUri(uri) {
+  const parsed = url.parse(uri);
+  const o = { ...parsed, protocol: 'ws:' };
+  delete o.pathname;
+  return url.format(o);
+}
+
 export function maybeSubstitute(v) {
   return SUBSTITUTIONS[v] || v;
 }
@@ -63,12 +70,16 @@ export async function runCLI() {
       offerHash: v[0],
     }));
   if (payload.command === "attach") {
-    const ws = new WebSocket(uri);
+    const ws = new WebSocket(toWsUri(uri));
     ws.on("message", (m) => {
       const o = JSON.parse(m);
       if (o.type === "log") {
         daemonLogger[o.message.logLevel](o.message.data);
       }
+    });
+    await new Promise((resolve, reject) => {
+      ws.on('close', resolve);
+      ws.on('error', reject);
     });
   } else {
     const response = await fetch(uri + "/" + payload.command, {
