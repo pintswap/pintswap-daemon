@@ -367,6 +367,19 @@ export async function run() {
         pintswap.logger.info(v);
         return v;
       };
+      const { getTransactionCount } = providerProxy;
+      let nonce;
+      providerProxy.getTransactionCount = async function (address) {
+        const signerAddress = await signerProxy.getAddress();
+	if (address === signerAddress) {
+          if (!nonce) {
+            nonce = await getTransactionCount.call(providerProxy, address);
+	    return nonce;
+	  } else {
+	    return ++nonce;
+	  }
+	} else return getTransactionCount.call(providerProxy, address);
+      };
       providerProxy.broadcastTransaction = async function (...args) {
         const [serializedTransaction] = args;
         const tx = Transaction.from(serializedTransaction);
