@@ -221,7 +221,15 @@ export async function run() {
       if (o.status === "NO") {
         o.result = process.env.NODE_ENV === 'production' ? "NO" : o.result.stack;
 	logger.error(o.result);
-      } else logger.debug(o);
+      } else {
+        if (['debug', 'development'].includes(process.env.NODE_ENV)) {
+          const toLog = { ...o };
+	  try {
+            toLog.result = JSON.parse(o.result);
+	  } catch (e) {}
+          logger.debug(toLog);
+	}
+      }
       json.apply(res, args);
     };
     logger.info(req.method + '|' + req.originalUrl);
