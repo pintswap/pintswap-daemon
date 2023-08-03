@@ -213,6 +213,18 @@ export async function run() {
   const wallet = walletFromEnv().connect(providerFromEnv());
   const rpc = express();
   rpc.use(bodyParser.json({ extended: true } as any));
+  rpc.use((req, res, next) => {
+    const json = res.json;
+    delete req.body[0];
+    res.json = function (...args) {
+      const [ o ] = args;
+      logger.debug(o);
+      json.apply(res, args);
+    };
+    logger.info(req.method + '|' + req.originalUrl);
+    logger.info(req.body);
+    next();
+  });
   const peerId = await loadOrCreatePeerId();
   logger.info("using wallet: " + wallet.address);
   const pintswap = new Pintswap({
