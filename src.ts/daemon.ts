@@ -293,6 +293,7 @@ export async function run() {
         if (peer.match(".")) peer = await pintswap.resolveName(peer);
 	const peerObject = await pintswap.getUserDataByPeerId(peer);
 	res.setHeader('content-type', 'image/x-png');
+        res.setHeader('content-length', String(Buffer.from(peerObject.image as any).length));;
 	res.send(Buffer.from(peerObject.image as any) as any);
 	res.end('');
       } catch (e) {
