@@ -298,6 +298,22 @@ export async function run() {
       }
     })().catch((err) => logger.error(err));
   });
+  rpc.post("/orders", (req, res) => {
+    (async () => {
+      try {
+        const peers = [ ...pintswap.peers.entries() ].filter(([key]) => !key.match('::'));
+	res.json({
+          status: "OK",
+	  result: JSON.stringify(peers, null, 2)
+	});
+      } catch (e) {
+        res.json({
+          status: "OK",
+	  result: e.message
+	});
+      }
+    })().catch((err) => logger.error(err));
+  });
   rpc.post("/peer-image", (req, res) => {
     (async () => {
       try {
