@@ -186,7 +186,7 @@ pintswap-cli orderbook
 
 ### /trade
 
-Attempts to negotiate a trade aggregating the complete set of orderid/amount pairs supplied, with the targeted peer. Supports the `broadcast: true` property which, if set, will attempt to execute the trade transacitons as a bundle using the flashbots relay API.
+Attempts to negotiate a trade aggregating the complete set of orderid/amount pairs supplied, with the targeted peer. Supports the `broadcast: true` property which, if set, will attempt to execute the trade transactions as a bundle using the flashbots relay API.
 
 A /trade invocation can only execute if the base asset / trade asset pair are consistent throughout the list of orders to take, and they all must be offered by the same peer. This is true for any trade execution on the PintSwap protocol, whether it is by the daemon or the webapp that is being called to perform the trade.
 
