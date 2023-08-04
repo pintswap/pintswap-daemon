@@ -72,7 +72,7 @@ export const bindLogger = (
 export function walletFromEnv() {
   const WALLET = process.env.PINTSWAP_DAEMON_WALLET;
   if (!WALLET) {
-    logger.warn("no WALLET defined, generating random wallet as fallback");
+    logger.warn("no PINTSWAP_DAEMON_WALLET defined, generating random wallet as fallback");
     return ethers.Wallet.createRandom();
   }
   return new ethers.Wallet(WALLET);
