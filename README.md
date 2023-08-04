@@ -41,32 +41,6 @@ The pintswap-cli commands will call the corresponding `/command` endpoint on the
 
 To interact with the REST API, it is required to set the header `Content-Type: application/json` and send a JSON payload containing values for the fields specified below, or if no inputs are described, an empty object can be supplied.
 
-#### /publish
-
-Begins publishing the orderbook local to the daemon. This must be called after the daemon initializes or your orders will not be visible on the public orderbook.
-
-Example:
-
-```sh
-pintswap-cli publish
-```
-
-### /resolve
-
-Resolves a `.drip` name to a multiaddr. Can also be used to do reverse lookups
-
-Inputs:
-
-```js
-{
-  "name": "wock.drip"
-}
-```
-
-```sh
-pintswap-cli resolve --name wock.drip
-```
-
 ### /peer
 
 Retrieves the orderbook hosted by a remote peer on the PintSwap network, as well as any other details hosted by the peer, including the bio
@@ -107,56 +81,6 @@ Inputs:
 pintswap-cli peer-image --peer wock.drip > ~/wock.png
 ```
 
-### /subscribe
-
-Begins listening for orderbook publishes on the PintSwap network. Orders will accumulate and can thereafter be queried with the /orderbook route. If this API endpoint is not called after the daemon initializes the /orderbook route will respond with an empty list.
-
-```sh
-pintswap-cli subscribe
-```
-
-### /unsubscribe
-
-Stops listening for orderbook publishes on the PintSwap network.
-
-```sh
-pintswap-cli unsubscribe
-```
-
-### /orderbook
-
-Returns a view of the complete orderbook and associated PeerId for each offering.
-
-```sh
-pintswap-cli orderbook
-```
-
-### /trade
-
-Attempts to negotiate a trade aggregating the complete set of orderid/amount pairs supplied, with the targeted peer. Supports the `broadcast: true` property which, if set, will attempt to execute the trade transacitons as a bundle using the flashbots relay API.
-
-A /trade invocation can only execute if the base asset / trade asset pair are consistent throughout the list of orders to take, and they all must be offered by the same peer. This is true for any trade execution on the PintSwap protocol, whether it is by the daemon or the webapp that is being called to perform the trade.
-
-Inputs:
-
-```js
-{
-  "peer": "wock.drip",
-  "trades": [{
-    "offerHash": "0x44bdebb961a61ed9413fc1d950dad4cf9bf6410e4a95dbff7c2459bcc065ef6b",
-    "amount": "0x20f5612972944a000000"
-  }, {
-    "offerHash": "0xcd9305ed3975e3c0ad35f9169e75d386c63a21f4fa21433b2a97332336b39ad4",
-    "amount": "0x14c7ec8e56a7fc000000"
-  }],
-  "broadcast": true
-}
-```
-
-```sh
-pintswap-cli trade --peer wock.drip --trades 0x44bdebb961a61ed9413fc1d950dad4cf9bf6410e4a95dbff7c2459bcc065ef6b,0x20f5612972944a000000,0xcd9305ed3975e3c0ad35f9169e75d386c63a21f4fa21433b2a97332336b39ad4,0x14c7ec8e56a7fc000000 --broadcast
-```
-
 ### /add
 
 Adds a limit order to the local orderbook. If the order exists on the daemon, it can be taken by anyone who dials the peer with the /trade function, whether or not the node is actively publishing. It only requires the multiaddr of the daemon to trade against it, or otherwise the .drip name registered, if there is one.
@@ -195,6 +119,98 @@ Inputs:
 pintswap-cli limit --price 0.00267 --amount 100 --type sell --pair 0x8d008CAC1a5CB08aC962b1e34E977B79ABEee88D/USDC
 ```
 
+### /offers
+
+Retrives the local orders hosted on the daemon process which will be published if /publish is invoked.
+
+```sh
+pintswap-cli offers
+```
+
+### /delete
+
+Deletes an order from the local orderbook hosted on the daemon process.
+
+```js
+{
+   "id": "<orderhash>"
+}
+```
+
+```sh
+pintswap-cli delete --id 0xcd9305ed3975e3c0ad35f9169e75d386c63a21f4fa21433b2a97332336b39ad4
+```
+
+### /clear
+
+Deletes the entire local orderbook hosted on the daemon process.
+
+```sh
+pintswap-cli clear
+```
+
+#### /publish
+
+Begins publishing the orderbook local to the daemon. This must be called after the daemon initializes or your orders will not be visible on the public orderbook.
+
+Example:
+
+```sh
+pintswap-cli publish
+```
+
+### /subscribe
+
+Begins listening for orderbook publishes on the PintSwap network. Orders will accumulate and can thereafter be queried with the /orderbook route. If this API endpoint is not called after the daemon initializes the /orderbook route will respond with an empty list.
+
+```sh
+pintswap-cli subscribe
+```
+
+### /unsubscribe
+
+Stops listening for orderbook publishes on the PintSwap network.
+
+```sh
+pintswap-cli unsubscribe
+```
+
+### /orderbook
+
+Returns a view of the complete orderbook and associated PeerId for each offering.
+
+```sh
+pintswap-cli orderbook
+```
+
+
+### /trade
+
+Attempts to negotiate a trade aggregating the complete set of orderid/amount pairs supplied, with the targeted peer. Supports the `broadcast: true` property which, if set, will attempt to execute the trade transacitons as a bundle using the flashbots relay API.
+
+A /trade invocation can only execute if the base asset / trade asset pair are consistent throughout the list of orders to take, and they all must be offered by the same peer. This is true for any trade execution on the PintSwap protocol, whether it is by the daemon or the webapp that is being called to perform the trade.
+
+Inputs:
+
+```js
+{
+  "peer": "wock.drip",
+  "trades": [{
+    "offerHash": "0x44bdebb961a61ed9413fc1d950dad4cf9bf6410e4a95dbff7c2459bcc065ef6b",
+    "amount": "0x20f5612972944a000000"
+  }, {
+    "offerHash": "0xcd9305ed3975e3c0ad35f9169e75d386c63a21f4fa21433b2a97332336b39ad4",
+    "amount": "0x14c7ec8e56a7fc000000"
+  }],
+  "broadcast": true
+}
+```
+
+```sh
+pintswap-cli trade --peer wock.drip --trades 0x44bdebb961a61ed9413fc1d950dad4cf9bf6410e4a95dbff7c2459bcc065ef6b,0x20f5612972944a000000,0xcd9305ed3975e3c0ad35f9169e75d386c63a21f4fa21433b2a97332336b39ad4,0x14c7ec8e56a7fc000000 --broadcast
+```
+
+
 ### /register
 
 Registers a name on the .drip nameserver peers. Can only be unregistered with the PeerId used to register. Further work is planned to improve name resolution access control and mutability. For now, ensure you do not lose your PeerId if you intend to keep your .drip name.
@@ -209,6 +225,22 @@ Inputs:
 
 ```sh
 pintswap-cli register --name wock.drip
+```
+
+### /resolve
+
+Resolves a `.drip` name to a multiaddr. Can also be used to do reverse lookups
+
+Inputs:
+
+```js
+{
+  "name": "wock.drip"
+}
+```
+
+```sh
+pintswap-cli resolve --name wock.drip
 ```
 
 ### /set-bio
@@ -241,36 +273,6 @@ Inputs:
 
 ```sh
 pintswap-cli set-image --image ./wock.png
-```
-
-### /offers
-
-Retrives the local orders hosted on the daemon process which will be published if /publish is invoked.
-
-```sh
-pintswap-cli offers
-```
-
-### /delete
-
-Deletes an order from the local orderbook hosted on the daemon process.
-
-```js
-{
-   "id": "<orderhash>"
-}
-```
-
-```sh
-pintswap-cli delete --id 0xcd9305ed3975e3c0ad35f9169e75d386c63a21f4fa21433b2a97332336b39ad4
-```
-
-### /clear
-
-Deletes the entire local orderbook hosted on the daemon process.
-
-```sh
-pintswap-cli clear
 ```
 
 ### ws://localhost:42161
