@@ -29,7 +29,7 @@
     "peer-id": "^0.16.0",
     "utf-8-validate": "^6.0.3",
     "ws": "^8.13.0",
-    "yargs": "^17.7.1"
+    "yargs": "^17.7.2"
   },
   "devDependencies": {
     "@types/node": "^18.15.11",
