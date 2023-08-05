@@ -11,7 +11,7 @@ const rpcHost = options['rpc-host'];
 const rpcPort = options['rpc-port'];
 const wallet = options.wallet;
 if (wallet) {
-  if (ethers.Mnemonic.isValidMnemonic(wallet)) process.env.PINTSWAP_DAEMON_WALLET = new ethers.Wallet.fromPhrase(wallet).privateKey;
+  if (ethers.Mnemonic.isValidMnemonic(wallet)) process.env.PINTSWAP_DAEMON_WALLET = ethers.Wallet.fromPhrase(wallet).privateKey;
   else process.env.PINTSWAP_DAEMON_WALLET = wallet;
 }
 if (rpcHost) process.env.PINTSWAP_DAEMON_HOST = rpcHost;
