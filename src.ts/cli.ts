@@ -75,6 +75,8 @@ export async function runCLI() {
       const o = JSON.parse(m);
       if (o.type === "log") {
         daemonLogger[o.message.logLevel](o.message.data);
+      } else if (o.type === "orderbook") {
+        daemonLogger.debug(o);
       }
     });
     await new Promise((resolve, reject) => {
