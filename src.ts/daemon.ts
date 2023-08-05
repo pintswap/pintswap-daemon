@@ -19,6 +19,30 @@ const flashbotsProvider = new ethers.JsonRpcProvider(
   "https://relay.flashbots.net",
 );
 
+const fetch = global.fetch;
+
+let id = 0;
+
+export async function sendBundle(txs, targetBlock) {
+  const response = await (await fetch("https://relay.flashbots.net", {
+    method: "POST",
+    body: JSON.stringify({
+      id: id++,
+      jsonrpc: "2.0",
+      method: "eth_sendBundle",
+      params: [{ txs, targetBlock }]
+    }),
+    headers: {
+      'content-type': 'application/json'
+    }
+  })).json();
+  if (response.error) {
+    throw Error(response.error);
+  } else {
+    return response.result;
+  }
+}
+
 export function providerFromChainId(chainId) {
   switch (Number(chainId)) {
     case 1:
@@ -42,6 +66,13 @@ export function toProvider(p) {
 
 export const logger: any = createLogger("pintswap-daemon");
 
+export const broadcast = (wsServer: WebSocketServer, msg: any) => {
+  wsServer.clients.forEach((client) => {
+  if (client.readyState === WebSocket.OPEN)
+    client.send(msg);
+  });
+};
+
 export const bindLogger = (
   logger: ReturnType<typeof createLogger>,
   wsServer: WebSocketServer,
@@ -51,19 +82,14 @@ export const bindLogger = (
     logger[logLevel] = function (...args) {
       const [v] = args;
       const timestamp = Date.now();
-      wsServer.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN)
-          client.send(
-            JSON.stringify({
+      broadcast(wsServer, JSON.stringify({
               type: "log",
               message: {
                 logLevel,
                 timestamp,
                 data: v,
               },
-            }),
-          );
-      });
+            }));
       fn.apply(logger, args);
     };
   });
@@ -361,6 +387,8 @@ export async function run() {
       }));
       const txs = [];
       const signerProxy = pintswap.signer.connect(Object.create(pintswap.signer.provider));
+      const pintswapProxy = Object.create(pintswap);
+      pintswapProxy.signer = signerProxy;
       const providerProxy = signerProxy.provider;
       const logTx = (v) => {
         pintswap.logger.info("signed tx:");
@@ -418,16 +446,11 @@ export async function run() {
         null,
         pintswap.signer.provider,
       );
-      await pintswap.createBatchTrade(PeerId.createFromB58String(peer), trades).toPromise();
+      await pintswapProxy.createBatchTrade(PeerId.createFromB58String(peer), trades).toPromise();
       let result;
       if (broadcast) {
         const blockNumber = await providerProxy.getBlockNumber();
-        result = await flashbotsProvider.send("eth_sendBundle", [
-          {
-            txs: txs.map((v) => v.transaction),
-            targetBlock: blockNumber + 1,
-          },
-        ]);
+        result = await sendBundle(txs.map((v) => v.transaction), blockNumber + 1);
       } else result = JSON.stringify(txs);
       res.json({
         status: "OK",
@@ -644,6 +667,14 @@ export async function run() {
   });
   const server = createServer(rpc);
   const wsServer = new WebSocketServer({ server });
+  pintswap.on("pubsub/orderbook-update", () => {
+    broadcast(wsServer, JSON.stringify({
+      type: 'orderbook',
+      message: {
+        data: 'UPDATE'
+      }
+    }));
+  });
   bindLogger(logger, wsServer);
   await runServer(server);
 }
