@@ -65,7 +65,7 @@ export async function runCLI() {
   if (payload.options.image && payload.options.image[0] !== "/")
     payload.options.image = path.join(process.cwd(), payload.options.image);
   if (payload.command === "trade")
-    chunk(payload.options.trades.split(","), 2).map((v) => ({
+    payload.options.trades = chunk(payload.options.trades.split(","), 2).map((v) => ({
       amount: v[1],
       offerHash: v[0],
     }));

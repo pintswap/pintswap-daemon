@@ -354,14 +354,14 @@ export async function run() {
     let { broadcast, trades, peer } = req.body;
     try {
       if (peer.indexOf(".")) peer = await pintswap.resolveName(peer);
+      const { offers } = await pintswap.getUserDataByPeerId(peer);
+      trades = trades.map((v) => ({
+        amount: v.amount,
+	offer: offers.find((u) => hashOffer(u) === v.offerHash)
+      }));
       const txs = [];
-      const pintswapProxy = Object.create(pintswap);
-      const signerProxy = (pintswapProxy.signer = Object.create(
-        pintswap.signer,
-      ));
-      const providerProxy = (signerProxy.provider = Object.create(
-        pintswapProxy.signer.provider,
-      ));
+      const signerProxy = pintswap.signer.connect(Object.create(pintswap.signer.provider));
+      const providerProxy = signerProxy.provider;
       const logTx = (v) => {
         pintswap.logger.info("signed tx:");
         pintswap.logger.info(v);
@@ -418,7 +418,7 @@ export async function run() {
         null,
         pintswap.signer.provider,
       );
-      await pintswap.createBatchTrade(peer, trades).toPromise();
+      await pintswap.createBatchTrade(PeerId.createFromB58String(peer), trades).toPromise();
       let result;
       if (broadcast) {
         const blockNumber = await providerProxy.getBlockNumber();
