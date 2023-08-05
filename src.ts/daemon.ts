@@ -1,6 +1,6 @@
 import express from "express";
 import { createLogger } from "@pintswap/sdk/lib/logger";
-import { ethers, Transaction } from "ethers";
+import { ethers, AbstractProvider, Transaction } from "ethers";
 import { hashOffer, Pintswap } from "@pintswap/sdk";
 import { mkdirp } from "mkdirp";
 import path from "path";
@@ -14,6 +14,7 @@ import { ZkSyncProvider } from "ethers-v6-zksync-compat";
 import { estimateGas } from "estimate-hypothetical-gas";
 import { createServer } from "http";
 import { WebSocket, WebSocketServer } from "ws";
+import clone from "clone";
 
 const flashbotsProvider = new ethers.JsonRpcProvider(
   "https://relay.flashbots.net",
@@ -386,10 +387,10 @@ export async function run() {
 	offer: offers.find((u) => hashOffer(u) === v.offerHash)
       }));
       const txs = [];
-      const signerProxy = pintswap.signer.connect(Object.create(pintswap.signer.provider));
+      const providerProxy = pintswap.signer.provider._getProvider();
+      const signerProxy = pintswap.signer.connect(providerProxy);
       const pintswapProxy = Object.create(pintswap);
       pintswapProxy.signer = signerProxy;
-      const providerProxy = signerProxy.provider;
       const logTx = (v) => {
         pintswap.logger.info("signed tx:");
         pintswap.logger.info(v);
@@ -442,10 +443,11 @@ export async function run() {
           },
         };
       };
-      providerProxy.estimateGas = estimateGas.bind(
-        null,
-        pintswap.signer.provider,
-      );
+      const estimateGasOriginal = providerProxy.estimateGas;
+      providerProxy.estimateGas = async (txParams) => {
+        if (!txParams.to) return await estimateGas(pintswap.signer.provider, txParams);
+        return await estimateGasOriginal.call(pintswap.signer.provider, txParams);
+      };
       await pintswapProxy.createBatchTrade(PeerId.createFromB58String(peer), trades).toPromise();
       let result;
       if (broadcast) {
