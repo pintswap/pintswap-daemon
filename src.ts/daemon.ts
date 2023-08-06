@@ -22,26 +22,30 @@ const flashbotsProvider = new ethers.JsonRpcProvider(
 
 const fetch = global.fetch;
 
-let id = 0;
+let id = 1;
 
-export async function sendBundle(txs, targetBlock) {
+export async function signBundle(signer, body) {
+  return `${await signer.getAddress()}:${await signer.signMessage(ethers.id(body))}`;
+}
+
+export async function sendBundle(signer, txs, blockNumber) {
+  const body = JSON.stringify({
+    id: id++,
+    jsonrpc: "2.0",
+    method: "eth_sendBundle",
+    params: [{ txs, blockNumber: ethers.toBeHex(blockNumber) }]
+  }, null, 2);
+  console.log('body', body);
   const response = await (await fetch("https://relay.flashbots.net", {
     method: "POST",
-    body: JSON.stringify({
-      id: id++,
-      jsonrpc: "2.0",
-      method: "eth_sendBundle",
-      params: [{ txs, targetBlock }]
-    }),
+    body,
     headers: {
-      'content-type': 'application/json'
+      'Content-Type': 'application/json',
+      'X-Flashbots-Signature': await signBundle(signer, body)
     }
-  })).json();
-  if (response.error) {
-    throw Error(response.error);
-  } else {
-    return response.result;
-  }
+  })).text();
+  console.log(response);
+  return response;
 }
 
 export function providerFromChainId(chainId) {
@@ -388,9 +392,11 @@ export async function run() {
       }));
       const txs = [];
       const providerProxy = pintswap.signer.provider._getProvider();
+      providerProxy.waitForTransaction = async () => { return {}; };
       const signerProxy = pintswap.signer.connect(providerProxy);
       const pintswapProxy = Object.create(pintswap);
-      //pintswapProxy.signer = signerProxy;
+      pintswapProxy._awaitReceipts = false;
+      pintswapProxy.signer = signerProxy;
       const logTx = (v) => {
         pintswap.logger.info("signed tx:");
         pintswap.logger.info(v);
@@ -420,7 +426,7 @@ export async function run() {
               transaction: serializedTransaction,
             }),
           );
-        } else if (!tx.data) {
+        } else if (tx.data === '0x') {
           txs.push(
             logTx({
               sharedAddress: tx.to,
@@ -438,21 +444,19 @@ export async function run() {
           );
         }
         return {
+          hash: tx.hash,
           async wait() {
             return {};
           },
         };
       };
       const estimateGasOriginal = providerProxy.estimateGas;
-      providerProxy.estimateGas = async (txParams) => {
-        if (!txParams.to) return await estimateGas(pintswap.signer.provider, txParams);
-        return await estimateGasOriginal.call(pintswap.signer.provider, txParams);
-      };
+      providerProxy.estimateGas = estimateGas.bind(null, pintswap.signer.provider);
       await pintswapProxy.createBatchTrade(PeerId.createFromB58String(peer), trades).toPromise();
       let result;
       if (broadcast) {
         const blockNumber = await providerProxy.getBlockNumber();
-        result = await sendBundle(txs.map((v) => v.transaction), blockNumber + 1);
+        result = await sendBundle(pintswap.signer, txs.map((v) => v.transaction), blockNumber + 1);
       } else result = JSON.stringify(txs);
       res.json({
         status: "OK",

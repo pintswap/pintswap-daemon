@@ -2342,7 +2342,7 @@ esrecurse@^4.3.0:
 
 "estimate-hypothetical-gas@https://github.com/pintswap/estimate-hypothetical-gas":
   version "0.1.0"
-  resolved "https://github.com/pintswap/estimate-hypothetical-gas#7da4db941dd54801c17b79c32508ad5d0001ed10"
+  resolved "https://github.com/pintswap/estimate-hypothetical-gas#17d900e17ce8944cbcb229013109c76a9de63d12"
   dependencies:
     "@ethereumjs/vm" "^6.4.2"
     "@types/node" "^20.3.0"
