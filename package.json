@@ -32,6 +32,7 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
+    "@flashbots/mev-share-client": "^0.7.6",
     "@types/node": "^18.15.11",
     "typescript": "^5.0.4"
   }

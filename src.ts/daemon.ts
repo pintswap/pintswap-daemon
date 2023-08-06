@@ -15,9 +15,10 @@ import { estimateGas } from "estimate-hypothetical-gas";
 import { createServer } from "http";
 import { WebSocket, WebSocketServer } from "ws";
 import clone from "clone";
+import MevShareClient from "@flashbots/mev-share-client";
 
 const flashbotsProvider = new ethers.JsonRpcProvider(
-  "https://relay.flashbots.net",
+  "https://relay.flashbots.net"
 );
 
 const fetch = global.fetch;
@@ -25,25 +26,28 @@ const fetch = global.fetch;
 let id = 1;
 
 export async function signBundle(signer, body) {
-  return `${await signer.getAddress()}:${await signer.signMessage(ethers.id(body))}`;
+  return `${await signer.getAddress()}:${await signer.signMessage(
+    ethers.id(body)
+  )}`;
 }
 
-export async function sendBundle(signer, txs, blockNumber) {
-  const body = JSON.stringify({
-    id: id++,
-    jsonrpc: "2.0",
-    method: "eth_sendBundle",
-    params: [{ txs, blockNumber: ethers.toBeHex(blockNumber) }]
-  }, null, 2);
-  console.log('body', body);
-  const response = await (await fetch("https://relay.flashbots.net", {
-    method: "POST",
-    body,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Flashbots-Signature': await signBundle(signer, body)
-    }
-  })).text();
+export async function sendBundle(mevshare: MevShareClient, txs, blockNumber) {
+  const response = await mevshare.sendBundle({
+    inclusion: {
+      block: blockNumber,
+      maxBlock: blockNumber + 5,
+    },
+    body: txs.map((t) => ({ tx: t, canRevert: false })),
+    privacy: {
+      hints: {
+        txHash: true,
+        calldata: true,
+        logs: true,
+        functionSelector: true,
+        contractAddress: true,
+      },
+    },
+  });
   console.log(response);
   return response;
 }
@@ -73,28 +77,30 @@ export const logger: any = createLogger("pintswap-daemon");
 
 export const broadcast = (wsServer: WebSocketServer, msg: any) => {
   wsServer.clients.forEach((client) => {
-  if (client.readyState === WebSocket.OPEN)
-    client.send(msg);
+    if (client.readyState === WebSocket.OPEN) client.send(msg);
   });
 };
 
 export const bindLogger = (
   logger: ReturnType<typeof createLogger>,
-  wsServer: WebSocketServer,
+  wsServer: WebSocketServer
 ) => {
   ["debug", "info", "error"].forEach((logLevel) => {
     const fn = logger[logLevel];
     logger[logLevel] = function (...args) {
       const [v] = args;
       const timestamp = Date.now();
-      broadcast(wsServer, JSON.stringify({
-              type: "log",
-              message: {
-                logLevel,
-                timestamp,
-                data: v,
-              },
-            }));
+      broadcast(
+        wsServer,
+        JSON.stringify({
+          type: "log",
+          message: {
+            logLevel,
+            timestamp,
+            data: v,
+          },
+        })
+      );
       fn.apply(logger, args);
     };
   });
@@ -103,7 +109,9 @@ export const bindLogger = (
 export function walletFromEnv() {
   const WALLET = process.env.PINTSWAP_DAEMON_WALLET;
   if (!WALLET) {
-    logger.warn("no PINTSWAP_DAEMON_WALLET defined, generating random wallet as fallback");
+    logger.warn(
+      "no PINTSWAP_DAEMON_WALLET defined, generating random wallet as fallback"
+    );
     return ethers.Wallet.createRandom();
   }
   return new ethers.Wallet(WALLET);
@@ -116,26 +124,26 @@ export function providerFromEnv() {
 
 export const PINTSWAP_DIRECTORY = path.join(
   process.env.HOME,
-  ".pintswap-daemon",
+  ".pintswap-daemon"
 );
 
 export const PINTSWAP_PEERID_FILEPATH = path.join(
   PINTSWAP_DIRECTORY,
-  "peer-id.json",
+  "peer-id.json"
 );
 
 export async function loadOrCreatePeerId() {
   await mkdirp(PINTSWAP_DIRECTORY);
   if (await fs.exists(PINTSWAP_PEERID_FILEPATH)) {
     return await PeerId.createFromJSON(
-      JSON.parse(await fs.readFile(PINTSWAP_PEERID_FILEPATH, "utf8")),
+      JSON.parse(await fs.readFile(PINTSWAP_PEERID_FILEPATH, "utf8"))
     );
   }
   logger.info("generating PeerId ...");
   const peerId = await PeerId.create();
   await fs.writeFile(
     PINTSWAP_PEERID_FILEPATH,
-    JSON.stringify(peerId.toJSON(), null, 2),
+    JSON.stringify(peerId.toJSON(), null, 2)
   );
   return peerId;
 }
@@ -146,7 +154,7 @@ export async function runServer(server: ReturnType<typeof createServer>) {
   const uri = hostname + ":" + port;
   await new Promise<void>((resolve, reject) => {
     (server.listen as any)(port, hostname, (err) =>
-      err ? reject(err) : resolve(),
+      err ? reject(err) : resolve()
     );
   });
   logger.info("daemon bound to " + uri);
@@ -160,25 +168,25 @@ export async function expandValues([token, amount, tokenId], provider) {
       [v.symbol, v.name]
         .map((v) => v.toLowerCase())
         .includes(token.toLowerCase()) ||
-      v.address.toLowerCase() === token.toLowerCase(),
+      v.address.toLowerCase() === token.toLowerCase()
   );
   if (tokenRecord)
     return [
       ethers.getAddress(tokenRecord.address),
       ethers.hexlify(
-        ethers.toBeArray(ethers.parseUnits(amount, tokenRecord.decimals)),
+        ethers.toBeArray(ethers.parseUnits(amount, tokenRecord.decimals))
       ),
     ];
   const address = ethers.getAddress(token);
   const contract = new ethers.Contract(
     address,
     ["function decimals() view returns (uint8)"],
-    provider,
+    provider
   );
   return [
     address,
     ethers.hexlify(
-      ethers.toBeArray(ethers.parseUnits(amount, await contract.decimals())),
+      ethers.toBeArray(ethers.parseUnits(amount, await contract.decimals()))
     ),
   ];
 }
@@ -194,11 +202,11 @@ export async function expandOffer(offer, provider) {
   } = offer;
   const [givesToken, givesAmount, givesTokenId] = await expandValues(
     [givesTokenRaw, givesAmountRaw, givesTokenIdRaw],
-    provider,
+    provider
   );
   const [getsToken, getsAmount, getsTokenId] = await expandValues(
     [getsTokenRaw, getsAmountRaw, getsTokenIdRaw],
-    provider,
+    provider
   );
   return {
     givesToken,
@@ -212,7 +220,7 @@ export async function expandOffer(offer, provider) {
 
 export const PINTSWAP_DATA_FILEPATH = path.join(
   PINTSWAP_DIRECTORY,
-  "data.json",
+  "data.json"
 );
 export async function saveData(pintswap) {
   await mkdirp(PINTSWAP_DIRECTORY);
@@ -243,27 +251,29 @@ export async function loadData() {
 export async function run() {
   const wallet = walletFromEnv().connect(providerFromEnv());
   const rpc = express();
+  const mevshare = MevShareClient.useEthereumMainnet(wallet as any);
   rpc.use(bodyParser.json({ extended: true } as any));
   rpc.use((req, res, next) => {
     const json = res.json;
     delete req.body[0];
     res.json = function (...args) {
-      const [ o ] = args;
+      const [o] = args;
       if (o.status === "NO") {
-        o.result = process.env.NODE_ENV === 'production' ? "NO" : o.result.stack;
-	logger.error(o.result);
+        o.result =
+          process.env.NODE_ENV === "production" ? "NO" : o.result.stack;
+        logger.error(o.result);
       } else {
-        if (['debug', 'development'].includes(process.env.NODE_ENV)) {
+        if (["debug", "development"].includes(process.env.NODE_ENV)) {
           const toLog = { ...o };
-	  try {
+          try {
             toLog.result = JSON.parse(o.result);
-	  } catch (e) {}
+          } catch (e) {}
           logger.debug(toLog);
-	}
+        }
       }
       json.apply(res, args);
     };
-    logger.info(req.method + '|' + req.originalUrl);
+    logger.info(req.method + "|" + req.originalUrl);
     logger.info(req.body);
     next();
   });
@@ -280,7 +290,7 @@ export async function run() {
     (await loadData()) || {
       userData: { bio: "", image: Buffer.from([]) },
       offers: new Map(),
-    },
+    }
   );
   await pintswap.startNode();
   logger.info("connected to pintp2p");
@@ -324,14 +334,14 @@ export async function run() {
       try {
         let { peer } = req.body;
         if (peer.match(".")) peer = await pintswap.resolveName(peer);
-	const peerObject = await pintswap.getUserDataByPeerId(peer);
-	delete peerObject.image;
-	peerObject.offers = peerObject.offers.map(({ gets, gives }) => ({ gets, gives, id: hashOffer({ gets, gives }) }));
-        const result = JSON.stringify(
-          peerObject,
-          null,
-          2,
-        );
+        const peerObject = await pintswap.getUserDataByPeerId(peer);
+        delete peerObject.image;
+        peerObject.offers = peerObject.offers.map(({ gets, gives }) => ({
+          gets,
+          gives,
+          id: hashOffer({ gets, gives }),
+        }));
+        const result = JSON.stringify(peerObject, null, 2);
         res.json({
           status: "OK",
           result,
@@ -344,16 +354,25 @@ export async function run() {
   rpc.post("/orderbook", (req, res) => {
     (async () => {
       try {
-        const peers = [ ...pintswap.peers.entries() ].filter(([key]) => !key.match('::')).map((v) => [ v[0], v[1][1].map(({ gets, gives }) => ({ gets, gives, id: hashOffer({ gets, gives }) })) ]);
-	res.json({
+        const peers = [...pintswap.peers.entries()]
+          .filter(([key]) => !key.match("::"))
+          .map((v) => [
+            v[0],
+            v[1][1].map(({ gets, gives }) => ({
+              gets,
+              gives,
+              id: hashOffer({ gets, gives }),
+            })),
+          ]);
+        res.json({
           status: "OK",
-	  result: JSON.stringify(peers, null, 2)
-	});
+          result: JSON.stringify(peers, null, 2),
+        });
       } catch (e) {
         res.json({
           status: "OK",
-	  result: e
-	});
+          result: e,
+        });
       }
     })().catch((err) => logger.error(err));
   });
@@ -362,11 +381,14 @@ export async function run() {
       try {
         let { peer } = req.body;
         if (peer.match(".")) peer = await pintswap.resolveName(peer);
-	const peerObject = await pintswap.getUserDataByPeerId(peer);
-	res.setHeader('content-type', 'image/x-png');
-        res.setHeader('content-length', String(Buffer.from(peerObject.image as any).length));;
-	res.send(Buffer.from(peerObject.image as any) as any);
-	res.end('');
+        const peerObject = await pintswap.getUserDataByPeerId(peer);
+        res.setHeader("content-type", "image/x-png");
+        res.setHeader(
+          "content-length",
+          String(Buffer.from(peerObject.image as any).length)
+        );
+        res.send(Buffer.from(peerObject.image as any) as any);
+        res.end("");
       } catch (e) {
         res.json({ status: "NO", result: e });
       }
@@ -388,11 +410,13 @@ export async function run() {
       const { offers } = await pintswap.getUserDataByPeerId(peer);
       trades = trades.map((v) => ({
         amount: v.amount,
-	offer: offers.find((u) => hashOffer(u) === v.offerHash)
+        offer: offers.find((u) => hashOffer(u) === v.offerHash),
       }));
       const txs = [];
       const providerProxy = pintswap.signer.provider._getProvider();
-      providerProxy.waitForTransaction = async () => { return {}; };
+      providerProxy.waitForTransaction = async () => {
+        return {};
+      };
       const signerProxy = pintswap.signer.connect(providerProxy);
       const pintswapProxy = Object.create(pintswap);
       pintswapProxy._awaitReceipts = false;
@@ -406,14 +430,14 @@ export async function run() {
       let nonce;
       providerProxy.getTransactionCount = async function (address) {
         const signerAddress = await signerProxy.getAddress();
-	if (address === signerAddress) {
+        if (address === signerAddress) {
           if (!nonce) {
             nonce = await getTransactionCount.call(providerProxy, address);
-	    return nonce;
-	  } else {
-	    return ++nonce;
-	  }
-	} else return getTransactionCount.call(providerProxy, address);
+            return nonce;
+          } else {
+            return ++nonce;
+          }
+        } else return getTransactionCount.call(providerProxy, address);
       };
       providerProxy.broadcastTransaction = async function (...args) {
         const [serializedTransaction] = args;
@@ -424,15 +448,15 @@ export async function run() {
               sharedAddress: tx.from,
               type: "trade",
               transaction: serializedTransaction,
-            }),
+            })
           );
-        } else if (tx.data === '0x') {
+        } else if (tx.data === "0x") {
           txs.push(
             logTx({
               sharedAddress: tx.to,
               type: "gas",
               transaction: serializedTransaction,
-            }),
+            })
           );
         } else {
           txs.push(
@@ -440,7 +464,7 @@ export async function run() {
               sharedAddress: tx.to,
               type: "deposit",
               transaction: serializedTransaction,
-            }),
+            })
           );
         }
         return {
@@ -451,12 +475,21 @@ export async function run() {
         };
       };
       const estimateGasOriginal = providerProxy.estimateGas;
-      providerProxy.estimateGas = estimateGas.bind(null, pintswap.signer.provider);
-      await pintswapProxy.createBatchTrade(PeerId.createFromB58String(peer), trades).toPromise();
+      providerProxy.estimateGas = estimateGas.bind(
+        null,
+        pintswap.signer.provider
+      );
+      await pintswapProxy
+        .createBatchTrade(PeerId.createFromB58String(peer), trades)
+        .toPromise();
       let result;
       if (broadcast) {
         const blockNumber = await providerProxy.getBlockNumber();
-        result = await sendBundle(pintswap.signer, txs.map((v) => v.transaction), blockNumber + 1);
+        result = await sendBundle(
+          pintswap.signer,
+          txs.map((v) => v.transaction),
+          blockNumber + 1
+        );
       } else result = JSON.stringify(txs);
       res.json({
         status: "OK",
@@ -617,7 +650,7 @@ export async function run() {
   rpc.post("/offers", (req, res) => {
     const offers = [...pintswap.offers].map(([k, v]) => ({
       ...v,
-      id: k
+      id: k,
     }));
     res.json({
       status: "OK",
@@ -674,12 +707,15 @@ export async function run() {
   const server = createServer(rpc);
   const wsServer = new WebSocketServer({ server });
   pintswap.on("pubsub/orderbook-update", () => {
-    broadcast(wsServer, JSON.stringify({
-      type: 'orderbook',
-      message: {
-        data: 'UPDATE'
-      }
-    }));
+    broadcast(
+      wsServer,
+      JSON.stringify({
+        type: "orderbook",
+        message: {
+          data: "UPDATE",
+        },
+      })
+    );
   });
   bindLogger(logger, wsServer);
   await runServer(server);
