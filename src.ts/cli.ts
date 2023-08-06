@@ -65,10 +65,12 @@ export async function runCLI() {
   if (payload.options.image && payload.options.image[0] !== "/")
     payload.options.image = path.join(process.cwd(), payload.options.image);
   if (payload.command === "trade")
-    payload.options.trades = chunk(payload.options.trades.split(","), 2).map((v) => ({
-      amount: v[1],
-      offerHash: v[0],
-    }));
+    payload.options.trades = chunk(payload.options.trades.split(","), 2).map(
+      (v) => ({
+        amount: v[1],
+        offerHash: v[0],
+      }),
+    );
   if (payload.command === "attach") {
     const ws = new WebSocket(toWsUri(uri));
     ws.on("message", (m) => {
@@ -92,7 +94,9 @@ export async function runCLI() {
       body: JSON.stringify(payload.options),
     });
     if (payload.command === "peer-image") {
-      process.stdout.write(Buffer.from(await (await response.blob()).arrayBuffer()));
+      process.stdout.write(
+        Buffer.from(await (await response.blob()).arrayBuffer()),
+      );
     } else {
       const json = await response.json();
       console.log(

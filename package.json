@@ -8,7 +8,8 @@
     "pintswap-daemon": "./bin/daemon.js"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "prettier": "prettier --write ./src.ts/**/*.ts"
   },
   "repository": "https://github.com/pintswap/pintswap-daemon",
   "author": "altinak",
@@ -34,6 +35,7 @@
   "devDependencies": {
     "@flashbots/mev-share-client": "^0.7.6",
     "@types/node": "^18.15.11",
+    "prettier": "^3.0.1",
     "typescript": "^5.0.4"
   }
 }
