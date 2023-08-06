@@ -15,11 +15,8 @@ import { estimateGas } from "estimate-hypothetical-gas";
 import { createServer } from "http";
 import { WebSocket, WebSocketServer } from "ws";
 import clone from "clone";
-import MevShareClient from "@flashbots/mev-share-client";
+import { FlashbotsBundleProvider } from "./flashbots";
 
-const flashbotsProvider = new ethers.JsonRpcProvider(
-  "https://relay.flashbots.net"
-);
 
 const fetch = global.fetch;
 
@@ -31,24 +28,8 @@ export async function signBundle(signer, body) {
   )}`;
 }
 
-export async function sendBundle(mevshare: MevShareClient, txs, blockNumber) {
-  const response = await mevshare.sendBundle({
-    inclusion: {
-      block: blockNumber,
-      maxBlock: blockNumber + 5,
-    },
-    body: txs.map((t) => ({ tx: t, canRevert: false })),
-    privacy: {
-      hints: {
-        txHash: true,
-        calldata: true,
-        logs: true,
-        functionSelector: true,
-        contractAddress: true,
-      },
-    },
-  });
-  console.log(response);
+export async function sendBundle(flashbots: FlashbotsBundleProvider, txs, blockNumber) {
+  const response = await flashbots.sendBundle(txs, blockNumber);
   return response;
 }
 
@@ -251,8 +232,8 @@ export async function loadData() {
 export async function run() {
   const wallet = walletFromEnv().connect(providerFromEnv());
   const rpc = express();
-  const mevshare = MevShareClient.useEthereumMainnet(wallet as any);
-  console.log(mevshare);
+  const flashbots = await FlashbotsBundleProvider.create(wallet.provider, wallet);
+  logger.info(flashbots);
   rpc.use(bodyParser.json({ extended: true } as any));
   rpc.use((req, res, next) => {
     const json = res.json;
@@ -486,12 +467,13 @@ export async function run() {
       let result;
       if (broadcast) {
         const blockNumber = await providerProxy.getBlockNumber();
-        result = await sendBundle(
-          mevshare,
+        const bundleResult = await sendBundle(
+          flashbots,
           txs.map((v) => v.transaction),
           blockNumber + 1
-        );
-      } else result = JSON.stringify(txs);
+        ) as any;
+	result = JSON.stringify({ bundleHash: bundleResult.bundleHash, bundleTransactions: bundleResult.bundleTransactions }, null, 2);
+      } else result = JSON.stringify(txs, null, 2);
       res.json({
         status: "OK",
         result,
