@@ -457,10 +457,15 @@ export async function run() {
         };
       };
       const estimateGasOriginal = providerProxy.estimateGas;
-      providerProxy.estimateGas = estimateGas.bind(
+      const estimateGasBound = estimateGas.bind(
         null,
         pintswap.signer.provider
       );
+      pintswapProxy.estimateGas = async function (...args) {
+        const [ txParams ] = args;
+	if (!txParams.to) return await estimateGasBound(...args);
+	return await estimateGasOriginal.apply(pintswap.signer.provider, args);
+      };
       await pintswapProxy
         .createBatchTrade(PeerId.createFromB58String(peer), trades)
         .toPromise();
