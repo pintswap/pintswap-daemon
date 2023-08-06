@@ -252,6 +252,7 @@ export async function run() {
   const wallet = walletFromEnv().connect(providerFromEnv());
   const rpc = express();
   const mevshare = MevShareClient.useEthereumMainnet(wallet as any);
+  console.log(mevshare);
   rpc.use(bodyParser.json({ extended: true } as any));
   rpc.use((req, res, next) => {
     const json = res.json;
@@ -486,7 +487,7 @@ export async function run() {
       if (broadcast) {
         const blockNumber = await providerProxy.getBlockNumber();
         result = await sendBundle(
-          pintswap.signer,
+          mevshare,
           txs.map((v) => v.transaction),
           blockNumber + 1
         );
