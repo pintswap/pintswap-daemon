@@ -499,7 +499,7 @@ export async function run() {
       };
       const estimateGasOriginal = providerProxy.estimateGas;
       const estimateGasBound = estimateGas.bind(null, pintswap.signer.provider);
-      pintswapProxy.estimateGas = async function (...args) {
+      providerProxy.estimateGas = async function (...args) {
         const [txParams] = args;
         if (!txParams.to) return await estimateGasBound(...args);
         return await estimateGasOriginal.apply(pintswap.signer.provider, args);
