@@ -1,7 +1,7 @@
-import { BlockTag, TransactionReceipt, TransactionRequest } from '@ethersproject/abstract-provider';
-import { Networkish } from '@ethersproject/networks';
-import { ConnectionInfo } from '@ethersproject/web';
-import { JsonRpcProvider, Provider, Signer } from 'ethers';
+import { BlockTag, TransactionReceipt, TransactionRequest } from "@ethersproject/abstract-provider";
+import { Networkish } from "@ethersproject/networks";
+import { ConnectionInfo } from "@ethersproject/web";
+import { JsonRpcProvider, Provider, Signer } from "ethers";
 export declare const DEFAULT_FLASHBOTS_RELAY = "https://relay.flashbots.net";
 export declare const BASE_FEE_MAX_CHANGE_DENOMINATOR = 8;
 export declare enum FlashbotsBundleResolution {
@@ -139,7 +139,7 @@ export type GetBundleStatsResponseV2 = GetBundleStatsResponseSuccessV2 | RelayRe
 interface BlocksApiResponseTransactionDetails {
     transaction_hash: string;
     tx_index: number;
-    bundle_type: 'rogue' | 'flashbots' | 'mempool';
+    bundle_type: "rogue" | "flashbots" | "mempool";
     bundle_index: number;
     block_number: number;
     eoa_address: string;

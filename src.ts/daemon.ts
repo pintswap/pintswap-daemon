@@ -36,8 +36,16 @@ const BUILDER_RPCS = [
   "https://api.edennetwork.io/v1/bundle",
 ];
 
+export async function waitForBlock(provider, number) {
+  while (true) {
+    const block = await provider.getBlock(number);
+    if (block) return block;
+  }
+}
+
 export async function sendBundle(flashbots: any, txs, blockNumber) {
-  return await Promise.all(
+  const provider = flashbots.provider;
+  const list = await Promise.all(
     BUILDER_RPCS.map(async (rpc) =>
       (
         await FlashbotsBundleProvider.create(
@@ -45,13 +53,18 @@ export async function sendBundle(flashbots: any, txs, blockNumber) {
           flashbots.authSigner,
           rpc,
         )
-      )
-        .sendBundle(txs, blockNumber)
+      ).sendBundle(txs, blockNumber)
         .catch((err) => {
           /* logger.error(err) */
         }),
     ),
   );
+  const { bundleTransactions } = (list as any).find(Boolean);
+  const { hash: txHash } = bundleTransactions[bundleTransactions.length - 1];
+  await waitForBlock(provider, blockNumber);
+  const receipt = await provider.getTransactionReceipt(txHash);
+  if (!receipt) return await sendBundle(flashbots, txs, blockNumber + 1);
+  return receipt;
 }
 
 export function providerFromChainId(chainId) {
