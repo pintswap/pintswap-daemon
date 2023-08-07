@@ -36,14 +36,17 @@ const BUILDER_RPCS = [
   "https://api.edennetwork.io/v1/bundle",
 ];
 
+export const timeout = async (n) => await new Promise((resolve) => setTimeout(resolve, n));
+
 export async function waitForBlock(provider, number) {
   while (true) {
-    const block = await provider.getBlock(number);
+    const block = await provider.getBlock(Number(number));
     if (block) return block;
+    await timeout(3000);
   }
 }
 
-export async function sendBundle(flashbots: any, txs, blockNumber) {
+export async function sendBundle(logger: any, flashbots: any, txs, blockNumber) {
   const provider = flashbots.provider;
   const list = await Promise.all(
     BUILDER_RPCS.map(async (rpc) =>
@@ -61,9 +64,13 @@ export async function sendBundle(flashbots: any, txs, blockNumber) {
   );
   const { bundleTransactions } = (list as any).find(Boolean);
   const { hash: txHash } = bundleTransactions[bundleTransactions.length - 1];
+  
+  logger.info('waiting for block ' + Number(blockNumber));
   await waitForBlock(provider, blockNumber);
   const receipt = await provider.getTransactionReceipt(txHash);
-  if (!receipt) return await sendBundle(flashbots, txs, blockNumber + 1);
+  logger.info('receipt:');
+  logger.info(receipt);
+  if (!receipt) return await sendBundle(logger, flashbots, txs, blockNumber + 1);
   return receipt;
 }
 
@@ -504,6 +511,7 @@ export async function run() {
       if (broadcast) {
         const blockNumber = await providerProxy.getBlockNumber();
         const bundleResult = (await sendBundle(
+          pintswap.logger,
           flashbots,
           txs.map((v) => v.transaction),
           blockNumber + 1,
