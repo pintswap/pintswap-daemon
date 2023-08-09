@@ -623,10 +623,10 @@
   resolved "https://registry.yarnpkg.com/@noble/secp256k1/-/secp256k1-1.7.1.tgz#b251c70f824ce3ca7f8dc3df08d58f005cc0507c"
   integrity sha512-hOUk6AyBFmqVrv7k5WAw/LpszxVbj9gGN4JRkIX52fdFAj1UA61KXmZDvqVEm+pOyec3+fIeZB02LYa/pWOArw==
 
-"@pintswap/sdk@^1.4.12":
-  version "1.4.12"
-  resolved "https://registry.yarnpkg.com/@pintswap/sdk/-/sdk-1.4.12.tgz#68b05372291cee95162bbcb76ce96978a66bc9b7"
-  integrity sha512-KqkMvseAUFYSP50ZSxTmTaeznv4yDDuvft1KwSepzNraAGR5ph5sOUe/P7NuzimdrqvJpxW2PIEJ+sCeGMNOsA==
+"@pintswap/sdk@^1.4.14":
+  version "1.4.14"
+  resolved "https://registry.yarnpkg.com/@pintswap/sdk/-/sdk-1.4.14.tgz#3876ea79d80d3ac93b759722854a5a4814e20ff7"
+  integrity sha512-AZnackFuBcpk0xJIjf9uuiEB2EpZcCPwF/I1KQz1H9d8DLR28TU8AL2KJaRE3GZeVqPsKC2rmMTlQJTHSdeBSw==
   dependencies:
     "@multiformats/multiaddr" "^12.1.0"
     "@noble/ed25519" "^1.6.0"
@@ -635,6 +635,7 @@
     aes-js "^3.1.2"
     assert "^2.0.0"
     base64url "^3.0.1"
+    bech32 "^2.0.0"
     bn.js "^5.2.1"
     buffer "^6.0.3"
     canonical-weth "^1.4.0"
@@ -1463,6 +1464,11 @@ bech32@1.1.4:
   version "1.1.4"
   resolved "https://registry.yarnpkg.com/bech32/-/bech32-1.1.4.tgz#e38c9f37bf179b8eb16ae3a772b40c356d4832e9"
   integrity sha512-s0IrSOzLlbvX7yp4WBfPITzpAU8sqQcpsmwXDiKwrG4r491vwCO/XpejasRNl0piBMe/DvP4Tz0mIS/X1DPJBQ==
+
+bech32@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/bech32/-/bech32-2.0.0.tgz#078d3686535075c8c79709f054b1b226a133b355"
+  integrity sha512-LcknSilhIGatDAsY1ak2I8VtGaHNhgMSYVxFrGLXv+xLHytaKZKcaUJJUE7qmBr7h33o5YQwP55pMI0xmkpJwg==
 
 bigint-crypto-utils@^3.2.2:
   version "3.3.0"
