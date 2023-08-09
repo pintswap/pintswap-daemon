@@ -357,7 +357,7 @@ export async function run() {
       try {
         let { peer } = req.body;
         if (peer.match(".")) peer = await pintswap.resolveName(peer);
-        const peerObject = await pintswap.getUserDataByPeerId(peer);
+        const peerObject = await pintswap.getUserData(peer);
         delete peerObject.image;
         peerObject.offers = peerObject.offers.map(({ gets, gives }) => ({
           gets,
@@ -404,7 +404,7 @@ export async function run() {
       try {
         let { peer } = req.body;
         if (peer.match(".")) peer = await pintswap.resolveName(peer);
-        const peerObject = await pintswap.getUserDataByPeerId(peer);
+        const peerObject = await pintswap.getUserData(peer);
         res.setHeader("content-type", "image/x-png");
         res.setHeader(
           "content-length",
@@ -430,7 +430,7 @@ export async function run() {
     let { broadcast, trades, peer } = req.body;
     try {
       if (peer.indexOf(".")) peer = await pintswap.resolveName(peer);
-      const { offers } = await pintswap.getUserDataByPeerId(peer);
+      const { offers } = await pintswap.getUserData(peer);
       trades = trades.map((v) => ({
         amount: v.amount,
         offer: offers.find((u) => hashOffer(u) === v.offerHash),
