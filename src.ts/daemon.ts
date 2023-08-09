@@ -317,10 +317,10 @@ export async function run() {
   );
   await pintswap.startNode();
   logger.info("connected to pintp2p");
-  logger.info("using multiaddr: " + peerId.toB58String());
+  logger.info("using peerid: " + pintswap.address);
   logger.info("registered protocol handlers");
   pintswap.on("peer:discovery", (peer) => {
-    logger.info("discovered peer: " + peer.toB58String());
+    logger.info("discovered peer: " + Pintswap.toAddress(peer.toB58String()));
   });
   let publisher = null;
   rpc.post("/publish", (req, res) => {
