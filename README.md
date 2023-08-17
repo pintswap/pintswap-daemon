@@ -65,7 +65,7 @@ Inputs:
 
 ```js
 {
-  "peer": "QmQ8e4HF8Vxw4Ep7mdQjvphZJwDhjLUAoXqmEzftZnyAK2"
+  "peer": "pint1zgsp4ga24uswa954kf03w3jhw5ad5qq5kgt90ykn560aktkussv9h2gyc5cjp"
 }
 ```
 
