@@ -429,7 +429,7 @@ export async function run() {
   rpc.post("/trade", async (req, res) => {
     let { broadcast, trades, peer } = req.body;
     try {
-      if (peer.indexOf(".")) peer = await pintswap.resolveName(peer);
+      if (peer.indexOf(".") !== -1) peer = await pintswap.resolveName(peer);
       const { offers } = await pintswap.getUserData(peer);
       trades = trades.map((v) => ({
         amount: v.amount,
@@ -505,7 +505,7 @@ export async function run() {
         return await estimateGasOriginal.apply(pintswap.signer.provider, args);
       };
       await pintswapProxy
-        .createBatchTrade(PeerId.createFromB58String(peer), trades)
+        .createBatchTrade(peer, trades)
         .toPromise();
       let result;
       if (broadcast) {
