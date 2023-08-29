@@ -640,6 +640,25 @@ export async function run() {
       });
     });
   });
+  rpc.post("/address", (req, res) => {
+    try {
+      res.json({
+        status: "OK",
+	result: pintswap.address
+      });
+    } catch (e) {
+      res.json({
+        status: "NO",
+	result: e
+      })
+    }
+  });
+  rpc.post("/ethereum-address", (req, res) => {
+    res.json({
+      status: "OK",
+      result: pintswap.signer.address
+    });
+  });
   rpc.post("/set-bio", (req, res) => {
     (async () => {
       const { bio } = req.body;

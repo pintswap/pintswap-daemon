@@ -41,6 +41,22 @@ The pintswap-cli commands will call the corresponding `/command` endpoint on the
 
 To interact with the REST API, it is required to set the header `Content-Type: application/json` and send a JSON payload containing values for the fields specified below, or if no inputs are described, an empty object can be supplied.
 
+### /address
+
+Retrieves the `pint1` address associated with the daemon's connection to pintp2p.
+
+```sh
+pintswap-cli address
+```
+
+### /ethereum-address
+
+Retrieves the Ethereum wallet address associated with the daemon which is used to sign spends involved in trades.
+
+```sh
+pintswap-cli ethereum-address
+```
+
 ### /peer
 
 Retrieves the orderbook hosted by a remote peer on the PintSwap network, as well as any other details hosted by the peer, including the bio
@@ -49,7 +65,7 @@ Inputs:
 
 ```js
 {
-  "peer": "QmQ8e4HF8Vxw4Ep7mdQjvphZJwDhjLUAoXqmEzftZnyAK2"
+  "peer": "pint1zgsp4ga24uswa954kf03w3jhw5ad5qq5kgt90ykn560aktkussv9h2gyc5cjp"
 }
 ```
 
