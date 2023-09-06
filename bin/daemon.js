@@ -16,10 +16,11 @@ if (wallet) {
 }
 if (rpcHost) process.env.PINTSWAP_DAEMON_HOST = rpcHost;
 if (rpcPort) process.env.PINTSWAP_DAEMON_PORT = rpcPort;
-const { run, logger } = require('../');
+const { PintswapDaemon, logger } = require('../');
 
 (async () => {
-  await run();
+  const daemon = await PintswapDaemon.create();
+  await daemon.start();
 })().catch((err) => {
   logger.error(err);
   process.exit(1);
