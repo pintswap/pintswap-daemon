@@ -13,7 +13,12 @@ import { ZkSyncProvider } from "ethers-v6-zksync-compat";
 import { createServer } from "http";
 import { WebSocket, WebSocketServer } from "ws";
 import clone from "clone";
-import { createHandlers } from "./handlers";
+
+import { sendBundle } from "./utils";
+import { estimateGas } from "estimate-hypothetical-gas";
+import { fromLimitOrder } from "./orderbook";
+
+type Handler = (req: any, res: any) => void;
 
 const fetch = global.fetch;
 
@@ -157,7 +162,7 @@ class PintswapDaemon {
   public pintswap: Pintswap;
   public server: ReturnType<typeof createServer>;
   public wsServer: WebSocketServer;
-  public handlers: ReturnType<typeof createHandlers>;
+  public handlers: ReturnType<typeof this.createHandlers>;
   async broadcast(msg: any) {
     this.wsServer.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) client.send(msg);
@@ -337,13 +342,462 @@ class PintswapDaemon {
       };
     });
   }
+  createHandlers() {
+    let publisher: any;
+    const peer: Handler = (req, res) => {
+      (async () => {
+        try {
+          let { peer } = req.body;
+          if (peer.match(".")) peer = await this.pintswap.resolveName(peer);
+          const peerObject = await this.pintswap.getUserData(peer);
+          delete peerObject.image;
+          peerObject.offers = peerObject.offers.map(({ gets, gives }) => ({
+            gets,
+            gives,
+            id: hashOffer({ gets, gives }),
+          }));
+          const result = JSON.stringify(peerObject, null, 2);
+          res.json({
+            status: "OK",
+            result,
+          });
+        } catch (e) {
+          res.json({ status: "NO", result: e });
+        }
+      })().catch((err) => this.logger.error(err));
+    };
+
+    const resolve: Handler = (req, res) => {
+      (async () => {
+        try {
+          const { name } = req.body;
+          const resolved = await this.pintswap.resolveName(name);
+          res.json({
+            status: "OK",
+            result: resolved,
+          });
+        } catch (e) {
+          res.json({ status: "NO", result: e });
+        }
+      })().catch((err) => this.logger.error(err));
+    };
+
+    const publish: Handler = (req, res) => {
+      if (publisher) {
+        this.logger.info("already publishing offers");
+        return res.json({
+          status: "NO",
+          result: "NO",
+        });
+      }
+      publisher = this.pintswap.startPublishingOffers(10000);
+      this.logger.info("started publishing offers");
+      res.json({
+        status: "OK",
+        result: "OK",
+      });
+    };
+    const orderbook: Handler = (req, res) => {
+      (async () => {
+        try {
+          const peers = [...this.pintswap.peers.entries()]
+            .filter(([key]) => !key.match("::"))
+            .map((v) => [
+              v[0],
+              v[1][1].map(({ gets, gives }) => ({
+                gets,
+                gives,
+                id: hashOffer({ gets, gives }),
+              })),
+            ]);
+          res.json({
+            status: "OK",
+            result: JSON.stringify(peers, null, 2),
+          });
+        } catch (e) {
+          res.json({
+            status: "OK",
+            result: e,
+          });
+        }
+      })().catch((err) => this.logger.error(err));
+    };
+
+    const peerImage = (req, res) => {
+      (async () => {
+        try {
+          let { peer } = req.body;
+          if (peer.match(".")) peer = await this.pintswap.resolveName(peer);
+          const peerObject = await this.pintswap.getUserData(peer);
+          res.setHeader("content-type", "image/x-png");
+          res.setHeader(
+            "content-length",
+            String(Buffer.from(peerObject.image as any).length),
+          );
+          res.send(Buffer.from(peerObject.image as any) as any);
+          res.end("");
+        } catch (e) {
+          res.json({ status: "NO", result: e });
+        }
+      })().catch((err) => this.logger.error(err));
+    };
+
+    const subscribe = (req, res) => {
+      (async () => {
+        await this.pintswap.subscribeOffers();
+        res.json({
+          status: "OK",
+          result: "OK",
+        });
+      })().catch((err) => this.logger.error(err));
+    };
+    const trade: Handler = async (req, res) => {
+      let { broadcast, trades, peer } = req.body;
+      try {
+        if (peer.indexOf(".") !== -1)
+          peer = await this.pintswap.resolveName(peer);
+        const { offers } = await this.pintswap.getUserData(peer);
+        trades = trades.map((v) => ({
+          amount: v.amount,
+          offer: offers.find((u) => hashOffer(u) === v.offerHash),
+        }));
+        const txs = [];
+        const providerProxy = this.pintswap.signer.provider._getProvider();
+        providerProxy.waitForTransaction = async () => {
+          return {};
+        };
+        const signerProxy = this.pintswap.signer.connect(providerProxy);
+        const pintswapProxy = Object.create(this.pintswap);
+        pintswapProxy._awaitReceipts = false;
+        pintswapProxy.signer = signerProxy;
+        const logTx = (v) => {
+          this.pintswap.logger.info("signed tx:");
+          this.pintswap.logger.info(v);
+          return v;
+        };
+        const { getTransactionCount } = providerProxy;
+        let nonce;
+        providerProxy.getTransactionCount = async function (address) {
+          const signerAddress = await signerProxy.getAddress();
+          if (address === signerAddress) {
+            if (!nonce) {
+              nonce = await getTransactionCount.call(providerProxy, address);
+              return nonce;
+            } else {
+              return ++nonce;
+            }
+          } else return getTransactionCount.call(providerProxy, address);
+        };
+        providerProxy.broadcastTransaction = async function (...args) {
+          const [serializedTransaction] = args;
+          const tx = Transaction.from(serializedTransaction);
+          if (!tx.to) {
+            txs.push(
+              logTx({
+                sharedAddress: tx.from,
+                type: "trade",
+                transaction: serializedTransaction,
+              }),
+            );
+          } else if (tx.data === "0x") {
+            txs.push(
+              logTx({
+                sharedAddress: tx.to,
+                type: "gas",
+                transaction: serializedTransaction,
+              }),
+            );
+          } else {
+            txs.push(
+              logTx({
+                sharedAddress: tx.to,
+                type: "deposit",
+                transaction: serializedTransaction,
+              }),
+            );
+          }
+          return {
+            hash: tx.hash,
+            async wait() {
+              return {};
+            },
+          };
+        };
+        const estimateGasOriginal = providerProxy.estimateGas;
+        const estimateGasBound = estimateGas.bind(
+          null,
+          this.pintswap.signer.provider,
+        );
+        providerProxy.estimateGas = async function (...args) {
+          const [txParams] = args;
+          if (!txParams.to) return await estimateGasBound(...args);
+          return await estimateGasOriginal.apply(
+            this.pintswap.signer.provider,
+            args,
+          );
+        };
+        await pintswapProxy.createBatchTrade(peer, trades).toPromise();
+        let result;
+        if (broadcast) {
+          const blockNumber = await providerProxy.getBlockNumber();
+          const bundleResult = (await sendBundle(
+            this.pintswap.logger,
+            this.flashbots,
+            txs.map((v) => v.transaction),
+            blockNumber + 1,
+          )) as any;
+          result = JSON.stringify(bundleResult, null, 2);
+        } else result = JSON.stringify(txs, null, 2);
+        res.json({
+          status: "OK",
+          result,
+        });
+      } catch (e) {
+        res.json({
+          status: "NO",
+          result: e,
+        });
+      }
+    };
+    const unsubscribe: Handler = async (req, res) => {
+      (async () => {
+        await this.pintswap.pubsub.unsubscribe(
+          "/pintswap/0.1.0/publish-orders",
+        );
+        res.json({
+          status: "OK",
+          result: "OK",
+        });
+      })().catch((err) => this.logger.error(err));
+    };
+    const quiet: Handler = (req, res) => {
+      if (publisher) {
+        publisher.stop();
+        publisher = null;
+        this.logger.info("not publishing offers yet");
+        return res.json({
+          status: "NO",
+          result: "NO",
+        });
+      }
+      this.logger.info("stopped publishing offers");
+      res.json({
+        status: "OK",
+        result: "OK",
+      });
+    };
+    const add: Handler = (req, res) => {
+      (async () => {
+        const {
+          givesToken,
+          getsToken,
+          givesAmount,
+          getsAmount,
+          givesTokenId,
+          getsTokenId,
+        } = req.body;
+        const offer = {
+          gives: {
+            token: givesToken,
+            tokenId:
+              givesTokenId &&
+              ethers.hexlify(ethers.toBeArray(ethers.getUint(givesTokenId))),
+            amount:
+              givesAmount &&
+              ethers.hexlify(ethers.toBeArray(ethers.getUint(givesAmount))),
+          },
+          gets: {
+            token: getsToken,
+            tokenId:
+              getsTokenId &&
+              ethers.hexlify(ethers.toBeArray(ethers.getUint(getsTokenId))),
+            amount:
+              getsAmount &&
+              ethers.hexlify(ethers.toBeArray(ethers.getUint(getsAmount))),
+          },
+        };
+        if (offer.gives.tokenId === undefined) delete offer.gives.tokenId;
+        if (offer.gets.tokenId === undefined) delete offer.gets.tokenId;
+        const orderHash = hashOffer(offer);
+        this.pintswap.offers.set(orderHash, offer);
+        await this.saveData();
+        res.json({
+          status: "OK",
+          result: orderHash,
+        });
+      })().catch((err) => {
+        this.logger.error(err);
+        res.json({
+          status: "NO",
+          result: err.code || 1,
+        });
+      });
+    };
+    const limit: Handler = (req, res) => {
+      (async () => {
+        const { givesToken, getsToken, givesAmount, getsAmount } =
+          await fromLimitOrder(req.body, this.pintswap.signer);
+        const offer = {
+          gives: { token: givesToken, amount: givesAmount },
+          gets: { token: getsToken, amount: getsAmount },
+        };
+        const orderHash = hashOffer(offer);
+        this.pintswap.offers.set(orderHash, offer);
+        await this.saveData();
+        res.json({
+          status: "OK",
+          result: orderHash,
+        });
+      })().catch((err) => {
+        this.logger.error(err);
+        res.json({
+          status: "NO",
+          result: err.code || 1,
+        });
+      });
+    };
+    const register: Handler = (req, res) => {
+      (async () => {
+        const { name } = req.body;
+        const response: any = await this.pintswap.registerName(name);
+        res.json({
+          status: "OK",
+          result: response.status,
+        });
+      })().catch((err) => {
+        this.logger.error(err);
+        res.json({
+          status: "NO",
+          result: err.message,
+        });
+      });
+    };
+    const address: Handler = (req, res) => {
+      try {
+        res.json({
+          status: "OK",
+          result: this.pintswap.address,
+        });
+      } catch (e) {
+        res.json({
+          status: "NO",
+          result: e,
+        });
+      }
+    };
+    const ethereumAddress: Handler = (req, res) => {
+      res.json({
+        status: "OK",
+        result: this.pintswap.signer.address,
+      });
+    };
+    const setBio: Handler = (req, res) => {
+      (async () => {
+        const { bio } = req.body;
+        this.pintswap.setBio(bio);
+        await this.saveData();
+        res.json({
+          status: "OK",
+          result: "OK",
+        });
+      })().catch((err) => {
+        this.logger.error(err);
+        res.json({
+          status: "NO",
+          result: err.message,
+        });
+      });
+    };
+    const setImage: Handler = (req, res) => {
+      const { image } = req.body;
+      (async () => {
+        //@ts-ignore
+        this.pintswap.setImage(await fs.readFile(image));
+        await this.saveData();
+        res.json({
+          status: "OK",
+          result: "OK",
+        });
+      })().catch((err) => {
+        this.logger.error(err);
+        res.json({
+          status: "NO",
+          result: err.message,
+        });
+      });
+    };
+    const offers: Handler = (req, res) => {
+      const _offers = [...this.pintswap.offers].map(([k, v]) => ({
+        ...v,
+        id: k,
+      }));
+      res.json({
+        status: "OK",
+        result: _offers,
+      });
+    };
+
+    const del: Handler = (req, res) => {
+      (async () => {
+        const { id } = req.body;
+        const result = this.pintswap.offers.delete(id);
+        await this.saveData();
+        res.json({
+          status: "OK",
+          result,
+        });
+      })().catch((err) => {
+        this.logger.error(err);
+        res.json({
+          status: "NO",
+          result: err.code,
+        });
+      });
+    };
+    const clear: Handler = (req, res) => {
+      (async () => {
+        for (const [key] of this.pintswap.offers.entries()) {
+          this.pintswap.offers.delete(key);
+        }
+        await this.saveData();
+        res.json({
+          status: "OK",
+          result: 0,
+        });
+      })().catch((err) => {
+        this.logger.error(err);
+        res.json({
+          status: "NO",
+          result: err.code,
+        });
+      });
+    };
+    return {
+      post: {
+        peer,
+        resolve,
+        publish,
+        orderbook,
+        peerImage,
+        subscribe,
+        trade,
+        unsubscribe,
+        quiet,
+        add,
+        limit,
+        register,
+        address,
+        ethereumAddress,
+        setBio,
+        setImage,
+        offers,
+        del,
+        clear,
+      },
+    };
+  }
   bindRoutes() {
-    this.handlers = createHandlers({
-      pintswap: this.pintswap,
-      logger: this.logger,
-      flashbots: this.flashbots,
-      saveData: this.saveData.bind(this),
-    });
+    this.handlers = this.createHandlers();
     Object.entries(this.handlers.post).map((d) => {
       this.rpc.post(convertToRoute(d[0]), d[1]);
     });
