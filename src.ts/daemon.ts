@@ -48,37 +48,6 @@ export function toProvider(p) {
 
 export const logger: any = createLogger("pintswap-daemon");
 
-export const broadcast = (wsServer: WebSocketServer, msg: any) => {
-  wsServer.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) client.send(msg);
-  });
-};
-
-export const bindLogger = (
-  logger: ReturnType<typeof createLogger>,
-  wsServer: WebSocketServer,
-) => {
-  ["debug", "info", "error"].forEach((logLevel) => {
-    const fn = logger[logLevel];
-    logger[logLevel] = function (...args) {
-      const [v] = args;
-      const timestamp = Date.now();
-      broadcast(
-        wsServer,
-        JSON.stringify({
-          type: "log",
-          message: {
-            logLevel,
-            timestamp,
-            data: v,
-          },
-        }),
-      );
-      fn.apply(logger, args);
-    };
-  });
-};
-
 export function walletFromEnv() {
   const WALLET = process.env.PINTSWAP_DAEMON_WALLET;
   if (!WALLET) {
@@ -104,34 +73,6 @@ export const PINTSWAP_PEERID_FILEPATH = path.join(
   PINTSWAP_DIRECTORY,
   "peer-id.json",
 );
-
-export async function loadOrCreatePeerId() {
-  await mkdirp(PINTSWAP_DIRECTORY);
-  if (await fs.exists(PINTSWAP_PEERID_FILEPATH)) {
-    return await PeerId.createFromJSON(
-      JSON.parse(await fs.readFile(PINTSWAP_PEERID_FILEPATH, "utf8")),
-    );
-  }
-  logger.info("generating PeerId ...");
-  const peerId = await PeerId.create();
-  await fs.writeFile(
-    PINTSWAP_PEERID_FILEPATH,
-    JSON.stringify(peerId.toJSON(), null, 2),
-  );
-  return peerId;
-}
-
-export async function runServer(server: ReturnType<typeof createServer>) {
-  const hostname = process.env.PINTSWAP_DAEMON_HOST || "127.0.0.1";
-  const port = process.env.PINTSWAP_DAEMON_PORT || 42161;
-  const uri = hostname + ":" + port;
-  await new Promise<void>((resolve, reject) => {
-    (server.listen as any)(port, hostname, (err) =>
-      err ? reject(err) : resolve(),
-    );
-  });
-  logger.info("daemon bound to " + uri);
-}
 
 export async function expandValues([token, amount, tokenId], provider) {
   if (tokenId) return [token, amount, tokenId];
@@ -195,118 +136,228 @@ export const PINTSWAP_DATA_FILEPATH = path.join(
   PINTSWAP_DIRECTORY,
   "data.json",
 );
-export async function saveData(pintswap) {
-  await mkdirp(PINTSWAP_DIRECTORY);
-  const data = pintswap.toObject();
-  const toSave = {
-    userData: data.userData,
-    offers: data.offers,
-  };
-  await fs.writeFile(PINTSWAP_DATA_FILEPATH, JSON.stringify(toSave, null, 2));
-}
-
-export async function loadData() {
-  await mkdirp(PINTSWAP_DIRECTORY);
-  const exists = await fs.exists(PINTSWAP_DATA_FILEPATH);
-  if (exists) {
-    const data = JSON.parse(await fs.readFile(PINTSWAP_DATA_FILEPATH, "utf8"));
-    return {
-      userData: {
-        bio: data.userData.bio || "",
-        image: Buffer.from(data.userData.image, "base64"),
-      },
-      offers: new Map(data.offers.map((v) => [hashOffer(v), v])),
-    };
-  }
-  return null;
-}
 
 function convertToRoute(str: string): string {
   if (str === "del") return "delete";
   return str.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
 }
 
-export async function run() {
-  const wallet = walletFromEnv().connect(providerFromEnv());
-  const rpc = express();
-  const flashbots = { provider: wallet.provider, authSigner: wallet };
-  logger.info(flashbots);
-  rpc.use(bodyParser.json({ extended: true } as any));
-  rpc.use((req, res, next) => {
-    const json = res.json;
-    delete req.body[0];
-    res.json = function (...args) {
-      const [o] = args;
-      if (o.status === "NO") {
-        o.result =
-          process.env.NODE_ENV === "production" ? "NO" : o.result.stack;
-        logger.error(o.result);
-      } else {
-        if (["debug", "development"].includes(process.env.NODE_ENV)) {
-          const toLog = { ...o };
-          try {
-            toLog.result = JSON.parse(o.result);
-          } catch (e) {}
-          logger.debug(toLog);
-        }
-      }
-      json.apply(res, args);
+interface IFlashbotsInputs {
+  provider: ethers.Provider;
+  authSigner: ethers.Signer;
+}
+
+class PintswapDaemon {
+  static PINTSWAP_DATA_FILEPATH = PINTSWAP_DATA_FILEPATH;
+  static PINTSWAP_DIRECTORY = PINTSWAP_DIRECTORY;
+  static PINTSWAP_PEERID_FILEPATH = PINTSWAP_PEERID_FILEPATH;
+  public wallet: ethers.Wallet;
+  public rpc: ReturnType<typeof express>;
+  public logger: typeof logger;
+  public pintswap: Pintswap;
+  public server: ReturnType<typeof createServer>;
+  public wsServer: WebSocketServer;
+  public handlers: ReturnType<typeof createHandlers>;
+  async broadcast(msg: any) {
+    this.wsServer.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) client.send(msg);
+    });
+  }
+  async runServer() {
+    const hostname = process.env.PINTSWAP_DAEMON_HOST || "127.0.0.1";
+    const port = process.env.PINTSWAP_DAEMON_PORT || 42161;
+    const uri = hostname + ":" + port;
+    await new Promise<void>((resolve, reject) => {
+      (this.server.listen as any)(port, hostname, (err) =>
+        err ? reject(err) : resolve(),
+      );
+    });
+    this.logger.info("daemon bound to " + uri);
+  }
+
+  async saveData() {
+    await mkdirp((this.constructor as any).PINTSWAP_DIRECTORY);
+    const data = this.pintswap.toObject();
+    const toSave = {
+      userData: data.userData,
+      offers: data.offers,
     };
-    logger.info(req.method + "|" + req.originalUrl);
-    logger.info(req.body);
-    next();
-  });
-  const peerId = await loadOrCreatePeerId();
-  logger.info("using wallet: " + wallet.address);
-  const pintswap = new Pintswap({
-    awaitReceipts: true,
-    signer: wallet,
-    peerId,
-  });
-  pintswap.logger = logger;
-  Object.assign(
-    pintswap,
-    (await loadData()) || {
-      userData: { bio: "", image: Buffer.from([]) },
-      offers: new Map(),
-    },
-  );
-  await pintswap.startNode();
-  logger.info("connected to pintp2p");
-  logger.info("using peerid: " + pintswap.address);
-  logger.info("registered protocol handlers");
-  pintswap.on("peer:discovery", (peer) => {
-    logger.info("discovered peer: " + Pintswap.toAddress(peer.toB58String()));
-  });
-  const handlers = createHandlers({ pintswap, logger, flashbots, saveData });
-  Object.entries(handlers.post).map((d) => {
-    rpc.post(convertToRoute(d[0]), d[1]);
-  });
-  pintswap.on("trade:maker", (trade) => {
-    (async () => {
-      logger.info("starting trade");
-      trade.on("progress", (step) => {
-        logger.info("step #" + step);
-      });
-      trade.on("error", (err) => {});
-      await trade.toPromise();
-      await saveData(pintswap);
-      logger.info("completed execution");
-    })().catch((err) => logger.error(err));
-  });
-  const server = createServer(rpc);
-  const wsServer = new WebSocketServer({ server });
-  pintswap.on("pubsub/orderbook-update", () => {
-    broadcast(
-      wsServer,
-      JSON.stringify({
-        type: "orderbook",
-        message: {
-          data: "UPDATE",
-        },
-      }),
+    await fs.writeFile(
+      (this.constructor as any).PINTSWAP_DATA_FILEPATH,
+      JSON.stringify(toSave, null, 2),
     );
-  });
-  bindLogger(logger, wsServer);
-  await runServer(server);
+  }
+  async loadData() {
+    await mkdirp((this.constructor as any).PINTSWAP_DIRECTORY);
+    const exists = await fs.exists(
+      (this.constructor as any).PINTSWAP_DATA_FILEPATH,
+    );
+    if (exists) {
+      const data = JSON.parse(
+        await fs.readFile(
+          (this.constructor as any).PINTSWAP_DATA_FILEPATH,
+          "utf8",
+        ),
+      );
+      return {
+        userData: {
+          bio: data.userData.bio || "",
+          image: Buffer.from(data.userData.image, "base64"),
+        },
+        offers: new Map(data.offers.map((v) => [hashOffer(v), v])),
+      };
+    }
+    return null;
+  }
+
+  get flashbots() {
+    return { provider: this.wallet.provider, authSigner: this.wallet };
+  }
+  constructor() {
+    this.logger = logger;
+    this.wallet = walletFromEnv().connect(providerFromEnv()) as ethers.Wallet;
+    this.rpc = express();
+    this.logger.info(this.flashbots);
+    this.bindMiddleware();
+    this.bindLogger();
+    this.bindRoutes();
+  }
+  static async create() {
+    const instance = new this();
+    await instance.instantiatePintswap();
+    return instance;
+  }
+  async start() {
+    await this.initializePintswap();
+  }
+  async loadOrCreatePeerId() {
+    await mkdirp((this.constructor as any).PINTSWAP_DIRECTORY);
+    if (await fs.exists(PINTSWAP_PEERID_FILEPATH)) {
+      return await PeerId.createFromJSON(
+        JSON.parse(
+          await fs.readFile(
+            (this.constructor as any).PINTSWAP_PEERID_FILEPATH,
+            "utf8",
+          ),
+        ),
+      );
+    }
+    this.logger.info("generating PeerId ...");
+    const peerId = await PeerId.create();
+    await fs.writeFile(
+      (this.constructor as any).PINTSWAP_PEERID_FILEPATH,
+      JSON.stringify(peerId.toJSON(), null, 2),
+    );
+    return peerId;
+  }
+  bindMiddleware() {
+    this.rpc.use(bodyParser.json({ extended: true } as any));
+    const self = this;
+    this.rpc.use((req, res, next) => {
+      const json = res.json;
+      delete req.body[0];
+      res.json = function (...args) {
+        const [o] = args;
+        if (o.status === "NO") {
+          o.result =
+            process.env.NODE_ENV === "production" ? "NO" : o.result.stack;
+          self.logger.error(o.result);
+        } else {
+          if (["debug", "development"].includes(process.env.NODE_ENV)) {
+            const toLog = { ...o };
+            try {
+              toLog.result = JSON.parse(o.result);
+            } catch (e) {}
+            self.logger.debug(toLog);
+          }
+        }
+        json.apply(res, args);
+      };
+      this.logger.info(req.method + "|" + req.originalUrl);
+      this.logger.info(req.body);
+      next();
+    });
+  }
+  async instantiatePintswap() {
+    const peerId = await this.loadOrCreatePeerId();
+    this.logger.info("using wallet: " + this.wallet.address);
+    this.pintswap = new Pintswap({
+      awaitReceipts: true,
+      signer: this.wallet,
+      peerId,
+    });
+    this.pintswap.logger = logger;
+    Object.assign(
+      this.pintswap,
+      (await this.loadData()) || {
+        userData: { bio: "", image: Buffer.from([]) },
+        offers: new Map(),
+      },
+    );
+  }
+  async initializePintswap() {
+    await this.pintswap.startNode();
+    this.logger.info("connected to pintp2p");
+    this.logger.info("using peerid: " + this.pintswap.address);
+    this.logger.info("registered protocol handlers");
+    this.pintswap.on("peer:discovery", (peer) => {
+      logger.info("discovered peer: " + Pintswap.toAddress(peer.toB58String()));
+    });
+    this.pintswap.on("trade:maker", (trade) => {
+      (async () => {
+        this.logger.info("starting trade");
+        trade.on("progress", (step) => {
+          this.logger.info("step #" + step);
+        });
+        trade.on("error", (err) => {});
+        await trade.toPromise();
+        await this.saveData();
+        this.logger.info("completed execution");
+      })().catch((err) => this.logger.error(err));
+    });
+  }
+  bindLogger() {
+    const self = this;
+    ["debug", "info", "error"].forEach((logLevel) => {
+      const fn = this.logger[logLevel];
+      this.logger[logLevel] = function (...args) {
+        const [v] = args;
+        const timestamp = Date.now();
+        self.broadcast(
+          JSON.stringify({
+            type: "log",
+            message: {
+              logLevel,
+              timestamp,
+              data: v,
+            },
+          }),
+        );
+        fn.apply(self.logger, args);
+      };
+    });
+  }
+  bindRoutes() {
+    this.handlers = createHandlers({
+      pintswap: this.pintswap,
+      logger: this.logger,
+      flashbots: this.flashbots,
+      saveData: this.saveData.bind(this),
+    });
+    Object.entries(this.handlers.post).map((d) => {
+      this.rpc.post(convertToRoute(d[0]), d[1]);
+    });
+    this.server = createServer(this.rpc);
+    this.wsServer = new WebSocketServer({ server: this.server });
+    this.pintswap.on("pubsub/orderbook-update", () => {
+      this.broadcast(
+        JSON.stringify({
+          type: "orderbook",
+          message: {
+            data: "UPDATE",
+          },
+        }),
+      );
+    });
+  }
 }
