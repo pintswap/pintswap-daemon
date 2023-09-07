@@ -152,7 +152,7 @@ interface IFlashbotsInputs {
   authSigner: ethers.Signer;
 }
 
-class PintswapDaemon {
+export class PintswapDaemon {
   static PINTSWAP_DATA_FILEPATH = PINTSWAP_DATA_FILEPATH;
   static PINTSWAP_DIRECTORY = PINTSWAP_DIRECTORY;
   static PINTSWAP_PEERID_FILEPATH = PINTSWAP_PEERID_FILEPATH;
@@ -164,7 +164,7 @@ class PintswapDaemon {
   public wsServer: WebSocketServer;
   public handlers: ReturnType<typeof this.createHandlers>;
   async broadcast(msg: any) {
-    this.wsServer.clients.forEach((client) => {
+    if (this.wsServer) this.wsServer.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) client.send(msg);
     });
   }
@@ -225,14 +225,14 @@ class PintswapDaemon {
     this.logger.info(this.flashbots);
     this.bindMiddleware();
     this.bindLogger();
-    this.bindRoutes();
   }
   static async create() {
     const instance = new this();
-    await instance.instantiatePintswap();
     return instance;
   }
   async start() {
+    await this.instantiatePintswap();
+    this.bindRoutes();
     await this.initializePintswap();
   }
   async loadOrCreatePeerId() {
