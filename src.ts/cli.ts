@@ -98,7 +98,8 @@ export async function runCLI() {
         Buffer.from(await (await response.blob()).arrayBuffer()),
       );
     } else {
-      const json = await response.json();
+      const text = await response.text();
+      const json = JSON.parse(text);
       console.log(
         typeof json.result === "string"
           ? json.result

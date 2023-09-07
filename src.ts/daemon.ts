@@ -234,6 +234,7 @@ export class PintswapDaemon {
     await this.instantiatePintswap();
     this.bindRoutes();
     await this.initializePintswap();
+    await this.runServer();
   }
   async loadOrCreatePeerId() {
     await mkdirp((this.constructor as any).PINTSWAP_DIRECTORY);
@@ -799,7 +800,7 @@ export class PintswapDaemon {
   bindRoutes() {
     this.handlers = this.createHandlers();
     Object.entries(this.handlers.post).map((d) => {
-      this.rpc.post(convertToRoute(d[0]), d[1]);
+      this.rpc.post('/' + convertToRoute(d[0]), d[1]);
     });
     this.server = createServer(this.rpc);
     this.wsServer = new WebSocketServer({ server: this.server });
