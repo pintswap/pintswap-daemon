@@ -1,6 +1,6 @@
 {
-  "name": "pintswap-daemon",
-  "version": "0.1.0",
+  "name": "@pintswap/daemon",
+  "version": "0.1.1",
   "description": "PintSwap daemon process ",
   "main": "lib/index.js",
   "bin": {
