@@ -804,7 +804,7 @@ export class PintswapDaemon {
     });
     this.server = createServer(this.rpc);
     this.wsServer = new WebSocketServer({ server: this.server });
-    this.pintswap.on("pubsub/orderbook-update", () => {
+    this.pintswap.on("/pubsub/orderbook-update", () => {
       this.broadcast(
         JSON.stringify({
           type: "orderbook",
