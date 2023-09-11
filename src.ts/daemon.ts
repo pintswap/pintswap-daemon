@@ -349,7 +349,6 @@ export class PintswapDaemon {
       (async () => {
         try {
           let { peer: thisPeer } = req.body;
-	  console.log("thisPeer", thisPeer);
           if (thisPeer.match(".")) thisPeer = await this.pintswap.resolveName(thisPeer);
           const peerObject = await this.pintswap.getUserData(thisPeer);
           delete peerObject.image;
@@ -459,8 +458,6 @@ export class PintswapDaemon {
         if (peer.indexOf(".") !== -1)
           peer = await this.pintswap.resolveName(peer);
         const { offers } = await this.pintswap.getUserData(peer);
-	console.log('offers', offers);
-	console.log('trades', trades);
         trades = trades.map((v) => ({
           amount: v.amount,
           offer: offers.find((u) => hashOffer(u) === v.offerHash),
