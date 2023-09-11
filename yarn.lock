@@ -38,7 +38,7 @@
   resolved "https://registry.yarnpkg.com/@discoveryjs/json-ext/-/json-ext-0.5.7.tgz#1d572bfbbe14b7704e0ba0f39b74815b84870d70"
   integrity sha512-dBVuXR082gk3jsFp7Rd/JI4kytwGHecnCoTtXFb7DB6CNHp4rg5k1bhg0nWdLGLnOV71lmDzGQaLMy8iPLY0pw==
 
-"@ethereumjs/block@^4.3.0":
+"@ethereumjs/block@^4.2.2", "@ethereumjs/block@^4.3.0":
   version "4.3.0"
   resolved "https://registry.yarnpkg.com/@ethereumjs/block/-/block-4.3.0.tgz#2b8dd6a2e37af9fe0e30dcff80c71eec8d6eba81"
   integrity sha512-NHzfNIqadldAB91LjkHOaQgMNA/Pc7C1N9NAm/QpewW6D0B9bSIYYnxwmv3EUyd/sbfBEheLFpwrBpvkCN+iAA==
@@ -50,7 +50,7 @@
     "@ethereumjs/util" "^8.1.0"
     ethereum-cryptography "^2.0.0"
 
-"@ethereumjs/blockchain@^6.3.0":
+"@ethereumjs/blockchain@^6.2.2":
   version "6.3.0"
   resolved "https://registry.yarnpkg.com/@ethereumjs/blockchain/-/blockchain-6.3.0.tgz#cbe95b5f8a2ea0449ec69e7e06d2aed6812ca717"
   integrity sha512-2FLtkThtA0SsfG6v7BzElEwLHMYE0nQf8BFGO/+HeFTwldWw0tybaobzJcX/p0j9bwEsRtnadU/iTAbXsHuNFw==
@@ -69,7 +69,7 @@
     lru-cache "^5.1.1"
     memory-level "^1.0.0"
 
-"@ethereumjs/common@^3.2.0":
+"@ethereumjs/common@^3.1.2", "@ethereumjs/common@^3.2.0":
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/@ethereumjs/common/-/common-3.2.0.tgz#b71df25845caf5456449163012074a55f048e0a0"
   integrity sha512-pksvzI0VyLgmuEF2FA/JR/4/y6hcPq8OUail3/AvycBaW1d5VSauOZzqGvJ3RTmR4MU35lWE8KseKOsEhrFRBA==
@@ -89,7 +89,7 @@
     bigint-crypto-utils "^3.2.2"
     ethereum-cryptography "^2.0.0"
 
-"@ethereumjs/evm@^1.4.0":
+"@ethereumjs/evm@^1.3.2":
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/@ethereumjs/evm/-/evm-1.4.0.tgz#29ef83f3212693e256bb858c43f6ca8bee733dd5"
   integrity sha512-ruLYlw6lfYukFiHyoGpJTI42UciW5ASXwMCRsmng9kuxv8TyBs711SbBUlzpO/Y2bxKGWvx6XCQJGxMCd/bqzw==
@@ -108,7 +108,7 @@
   resolved "https://registry.yarnpkg.com/@ethereumjs/rlp/-/rlp-4.0.1.tgz#626fabfd9081baab3d0a3074b0c7ecaf674aaa41"
   integrity sha512-tqsQiBQDQdmPWE1xkkBq4rlSW5QZpLOUJ5RJh2/9fug+q9tnUhuZoVLk7s0scUIKTOzEtR72DFBXI4WiZcMpvw==
 
-"@ethereumjs/statemanager@^1.1.0":
+"@ethereumjs/statemanager@^1.0.5":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@ethereumjs/statemanager/-/statemanager-1.1.0.tgz#23c476a30f6689937952aeedc2a1b423eb3a5867"
   integrity sha512-yOM0Q1SMCyi0Z/D9xbXsFYdZvbXtNAYNyZ2qmEfyUk46DZHILay78/ghjPaAqszqog3zeBf7hZqzBzf2Od4o2A==
@@ -120,7 +120,7 @@
     ethers "^5.7.1"
     js-sdsl "^4.1.4"
 
-"@ethereumjs/trie@^5.1.0":
+"@ethereumjs/trie@^5.0.5", "@ethereumjs/trie@^5.1.0":
   version "5.1.0"
   resolved "https://registry.yarnpkg.com/@ethereumjs/trie/-/trie-5.1.0.tgz#07c4432e04f4c41d7c68983b58adef8fb79c7d75"
   integrity sha512-OVaHuZUx1ao+VmYYg63kzmMgPqwFHPdDTP3hqp5Jh4QGWdhY5ddIMVhXBZRTxqEnDZkUmBA21yyAxdmI8YaBzA==
@@ -131,7 +131,7 @@
     ethereum-cryptography "^2.0.0"
     readable-stream "^3.6.0"
 
-"@ethereumjs/tx@^4.2.0":
+"@ethereumjs/tx@^4.1.2", "@ethereumjs/tx@^4.2.0":
   version "4.2.0"
   resolved "https://registry.yarnpkg.com/@ethereumjs/tx/-/tx-4.2.0.tgz#5988ae15daf5a3b3c815493bc6b495e76009e853"
   integrity sha512-1nc6VO4jtFd172BbSnTnDQVr9IYBFl1y4xPzZdtkrkKIncBCkdbgfdRV+MiTkJYAtTxvV12GRZLqBFT1PNK6Yw==
@@ -141,7 +141,7 @@
     "@ethereumjs/util" "^8.1.0"
     ethereum-cryptography "^2.0.0"
 
-"@ethereumjs/util@^8.1.0":
+"@ethereumjs/util@^8.0.6", "@ethereumjs/util@^8.1.0":
   version "8.1.0"
   resolved "https://registry.yarnpkg.com/@ethereumjs/util/-/util-8.1.0.tgz#299df97fb6b034e0577ce9f94c7d9d1004409ed4"
   integrity sha512-zQ0IqbdX8FZ9aw11vP+dZkKDkS+kgIvQPHnSAXzP9pLu+Rfu3D3XEeLbicvoXJTYnhZiPmsZUxgdzXwNKxRPbA==
@@ -150,20 +150,20 @@
     ethereum-cryptography "^2.0.0"
     micro-ftch "^0.3.1"
 
-"@ethereumjs/vm@^6.4.2":
-  version "6.5.0"
-  resolved "https://registry.yarnpkg.com/@ethereumjs/vm/-/vm-6.5.0.tgz#075b58de674474f6fa7c59541791fca815444b09"
-  integrity sha512-/i9dnF3Gw+l/47k/YgY/ba2p6lg2WY3YCkIVx0aoF71fC9nULfkQfJrTYlcn3FBiBFEjacI3p/N1F3hW7YcyzA==
+"@ethereumjs/vm@6.4.2":
+  version "6.4.2"
+  resolved "https://registry.yarnpkg.com/@ethereumjs/vm/-/vm-6.4.2.tgz#9898105a96f0975d561db69319331944db4bfafc"
+  integrity sha512-kTzOvJfNpUQHi2a0SbglYNWHIEOg5j3NlN80KU0IrdagWAeaEqz6Jj5XVN5lBs4VAfwXNdf+56xYtMg8Nate7Q==
   dependencies:
-    "@ethereumjs/block" "^4.3.0"
-    "@ethereumjs/blockchain" "^6.3.0"
-    "@ethereumjs/common" "^3.2.0"
-    "@ethereumjs/evm" "^1.4.0"
+    "@ethereumjs/block" "^4.2.2"
+    "@ethereumjs/blockchain" "^6.2.2"
+    "@ethereumjs/common" "^3.1.2"
+    "@ethereumjs/evm" "^1.3.2"
     "@ethereumjs/rlp" "^4.0.1"
-    "@ethereumjs/statemanager" "^1.1.0"
-    "@ethereumjs/trie" "^5.1.0"
-    "@ethereumjs/tx" "^4.2.0"
-    "@ethereumjs/util" "^8.1.0"
+    "@ethereumjs/statemanager" "^1.0.5"
+    "@ethereumjs/trie" "^5.0.5"
+    "@ethereumjs/tx" "^4.1.2"
+    "@ethereumjs/util" "^8.0.6"
     debug "^4.3.3"
     ethereum-cryptography "^2.0.0"
     mcl-wasm "^0.7.1"
@@ -2373,9 +2373,9 @@ esrecurse@^4.3.0:
 
 "estimate-hypothetical-gas@https://github.com/pintswap/estimate-hypothetical-gas":
   version "0.1.0"
-  resolved "https://github.com/pintswap/estimate-hypothetical-gas#5a63ec48da422a8643c8e822a446efc149473ab6"
+  resolved "https://github.com/pintswap/estimate-hypothetical-gas#4b30c802dec16b20fdc5be7aaa71391620490b45"
   dependencies:
-    "@ethereumjs/vm" "^6.4.2"
+    "@ethereumjs/vm" "6.4.2"
     "@types/node" "^20.3.0"
     bufferutil "^4.0.7"
     chai "^4.3.7"

@@ -348,9 +348,10 @@ export class PintswapDaemon {
     const peer: Handler = (req, res) => {
       (async () => {
         try {
-          let { peer } = req.body;
-          if (peer.match(".")) peer = await this.pintswap.resolveName(peer);
-          const peerObject = await this.pintswap.getUserData(peer);
+          let { peer: thisPeer } = req.body;
+	  console.log("thisPeer", thisPeer);
+          if (thisPeer.match(".")) thisPeer = await this.pintswap.resolveName(thisPeer);
+          const peerObject = await this.pintswap.getUserData(thisPeer);
           delete peerObject.image;
           peerObject.offers = peerObject.offers.map(({ gets, gives }) => ({
             gets,
@@ -458,6 +459,8 @@ export class PintswapDaemon {
         if (peer.indexOf(".") !== -1)
           peer = await this.pintswap.resolveName(peer);
         const { offers } = await this.pintswap.getUserData(peer);
+	console.log('offers', offers);
+	console.log('trades', trades);
         trades = trades.map((v) => ({
           amount: v.amount,
           offer: offers.find((u) => hashOffer(u) === v.offerHash),
