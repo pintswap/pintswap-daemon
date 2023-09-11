@@ -529,11 +529,12 @@ export class PintswapDaemon {
           null,
           this.pintswap.signer.provider,
         );
+	const { provider } = this.pintswap.signer;
         providerProxy.estimateGas = async function (...args) {
           const [txParams] = args;
           if (!txParams.to) return await estimateGasBound(...args);
           return await estimateGasOriginal.apply(
-            this.pintswap.signer.provider,
+            provider,
             args,
           );
         };
