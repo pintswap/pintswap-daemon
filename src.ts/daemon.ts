@@ -1,7 +1,7 @@
 import express from "express";
 import { createLogger } from "@pintswap/sdk/lib/logger";
 import { ethers, AbstractProvider, Transaction } from "ethers";
-import { hashOffer, Pintswap } from "@pintswap/sdk";
+import { hashOffer, Pintswap } from "@pintswap/sdk/src.ts/index";
 import { mkdirp } from "mkdirp";
 import path from "path";
 import bodyParser from "body-parser";
@@ -26,7 +26,7 @@ let id = 1;
 
 export async function signBundle(signer, body) {
   return `${await signer.getAddress()}:${await signer.signMessage(
-    ethers.id(body),
+    ethers.id(body)
   )}`;
 }
 
@@ -57,7 +57,7 @@ export function walletFromEnv() {
   const WALLET = process.env.PINTSWAP_DAEMON_WALLET;
   if (!WALLET) {
     logger.warn(
-      "no PINTSWAP_DAEMON_WALLET defined, generating random wallet as fallback",
+      "no PINTSWAP_DAEMON_WALLET defined, generating random wallet as fallback"
     );
     return ethers.Wallet.createRandom();
   }
@@ -71,12 +71,12 @@ export function providerFromEnv() {
 
 export const PINTSWAP_DIRECTORY = path.join(
   process.env.HOME,
-  ".pintswap-daemon",
+  ".pintswap-daemon"
 );
 
 export const PINTSWAP_PEERID_FILEPATH = path.join(
   PINTSWAP_DIRECTORY,
-  "peer-id.json",
+  "peer-id.json"
 );
 
 export async function expandValues([token, amount, tokenId], provider) {
@@ -87,25 +87,25 @@ export async function expandValues([token, amount, tokenId], provider) {
       [v.symbol, v.name]
         .map((v) => v.toLowerCase())
         .includes(token.toLowerCase()) ||
-      v.address.toLowerCase() === token.toLowerCase(),
+      v.address.toLowerCase() === token.toLowerCase()
   );
   if (tokenRecord)
     return [
       ethers.getAddress(tokenRecord.address),
       ethers.hexlify(
-        ethers.toBeArray(ethers.parseUnits(amount, tokenRecord.decimals)),
+        ethers.toBeArray(ethers.parseUnits(amount, tokenRecord.decimals))
       ),
     ];
   const address = ethers.getAddress(token);
   const contract = new ethers.Contract(
     address,
     ["function decimals() view returns (uint8)"],
-    provider,
+    provider
   );
   return [
     address,
     ethers.hexlify(
-      ethers.toBeArray(ethers.parseUnits(amount, await contract.decimals())),
+      ethers.toBeArray(ethers.parseUnits(amount, await contract.decimals()))
     ),
   ];
 }
@@ -121,11 +121,11 @@ export async function expandOffer(offer, provider) {
   } = offer;
   const [givesToken, givesAmount, givesTokenId] = await expandValues(
     [givesTokenRaw, givesAmountRaw, givesTokenIdRaw],
-    provider,
+    provider
   );
   const [getsToken, getsAmount, getsTokenId] = await expandValues(
     [getsTokenRaw, getsAmountRaw, getsTokenIdRaw],
-    provider,
+    provider
   );
   return {
     givesToken,
@@ -139,7 +139,7 @@ export async function expandOffer(offer, provider) {
 
 export const PINTSWAP_DATA_FILEPATH = path.join(
   PINTSWAP_DIRECTORY,
-  "data.json",
+  "data.json"
 );
 
 function convertToRoute(str: string): string {
@@ -164,9 +164,10 @@ export class PintswapDaemon {
   public wsServer: WebSocketServer;
   public handlers: ReturnType<typeof this.createHandlers>;
   async broadcast(msg: any) {
-    if (this.wsServer) this.wsServer.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) client.send(msg);
-    });
+    if (this.wsServer)
+      this.wsServer.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) client.send(msg);
+      });
   }
   async runServer() {
     const hostname = process.env.PINTSWAP_DAEMON_HOST || "127.0.0.1";
@@ -174,7 +175,7 @@ export class PintswapDaemon {
     const uri = hostname + ":" + port;
     await new Promise<void>((resolve, reject) => {
       (this.server.listen as any)(port, hostname, (err) =>
-        err ? reject(err) : resolve(),
+        err ? reject(err) : resolve()
       );
     });
     this.logger.info("daemon bound to " + uri);
@@ -189,20 +190,20 @@ export class PintswapDaemon {
     };
     await fs.writeFile(
       (this.constructor as any).PINTSWAP_DATA_FILEPATH,
-      JSON.stringify(toSave, null, 2),
+      JSON.stringify(toSave, null, 2)
     );
   }
   async loadData() {
     await mkdirp((this.constructor as any).PINTSWAP_DIRECTORY);
     const exists = await fs.exists(
-      (this.constructor as any).PINTSWAP_DATA_FILEPATH,
+      (this.constructor as any).PINTSWAP_DATA_FILEPATH
     );
     if (exists) {
       const data = JSON.parse(
         await fs.readFile(
           (this.constructor as any).PINTSWAP_DATA_FILEPATH,
-          "utf8",
-        ),
+          "utf8"
+        )
       );
       return {
         userData: {
@@ -243,16 +244,16 @@ export class PintswapDaemon {
         JSON.parse(
           await fs.readFile(
             (this.constructor as any).PINTSWAP_PEERID_FILEPATH,
-            "utf8",
-          ),
-        ),
+            "utf8"
+          )
+        )
       );
     }
     this.logger.info("generating PeerId ...");
     const peerId = await PeerId.create();
     await fs.writeFile(
       (this.constructor as any).PINTSWAP_PEERID_FILEPATH,
-      JSON.stringify(peerId.toJSON(), null, 2),
+      JSON.stringify(peerId.toJSON(), null, 2)
     );
     return peerId;
   }
@@ -298,7 +299,7 @@ export class PintswapDaemon {
       (await this.loadData()) || {
         userData: { bio: "", image: Buffer.from([]) },
         offers: new Map(),
-      },
+      }
     );
   }
   async initializePintswap() {
@@ -337,7 +338,7 @@ export class PintswapDaemon {
               timestamp,
               data: v,
             },
-          }),
+          })
         );
         fn.apply(self.logger, args);
       };
@@ -349,7 +350,8 @@ export class PintswapDaemon {
       (async () => {
         try {
           let { peer: thisPeer } = req.body;
-          if (thisPeer.match(".")) thisPeer = await this.pintswap.resolveName(thisPeer);
+          if (thisPeer.match("."))
+            thisPeer = await this.pintswap.resolveName(thisPeer);
           const peerObject = await this.pintswap.getUserData(thisPeer);
           delete peerObject.image;
           peerObject.offers = peerObject.offers.map(({ gets, gives }) => ({
@@ -433,7 +435,7 @@ export class PintswapDaemon {
           res.setHeader("content-type", "image/x-png");
           res.setHeader(
             "content-length",
-            String(Buffer.from(peerObject.image as any).length),
+            String(Buffer.from(peerObject.image as any).length)
           );
           res.send(Buffer.from(peerObject.image as any) as any);
           res.end("");
@@ -482,10 +484,12 @@ export class PintswapDaemon {
           const signerAddress = await signerProxy.getAddress();
           if (address === signerAddress) {
             if (!nonce) {
+              logger.debug("nonce::" + nonce);
               nonce = await getTransactionCount.call(providerProxy, address);
               return nonce;
             } else {
-              return ++nonce;
+              logger.debug("nonce::" + nonce);
+              return nonce++;
             }
           } else return getTransactionCount.call(providerProxy, address);
         };
@@ -498,7 +502,7 @@ export class PintswapDaemon {
                 sharedAddress: tx.from,
                 type: "trade",
                 transaction: serializedTransaction,
-              }),
+              })
             );
           } else if (tx.data === "0x") {
             txs.push(
@@ -506,7 +510,7 @@ export class PintswapDaemon {
                 sharedAddress: tx.to,
                 type: "gas",
                 transaction: serializedTransaction,
-              }),
+              })
             );
           } else {
             txs.push(
@@ -514,7 +518,7 @@ export class PintswapDaemon {
                 sharedAddress: tx.to,
                 type: "deposit",
                 transaction: serializedTransaction,
-              }),
+              })
             );
           }
           return {
@@ -527,26 +531,25 @@ export class PintswapDaemon {
         const estimateGasOriginal = providerProxy.estimateGas;
         const estimateGasBound = estimateGas.bind(
           null,
-          this.pintswap.signer.provider,
+          this.pintswap.signer.provider
         );
-	const { provider } = this.pintswap.signer;
+        const { provider } = this.pintswap.signer;
         providerProxy.estimateGas = async function (...args) {
           const [txParams] = args;
           if (!txParams.to) return await estimateGasBound(...args);
-          return await estimateGasOriginal.apply(
-            provider,
-            args,
-          );
+          return await estimateGasOriginal.apply(provider, args);
         };
-        await pintswapProxy.createBatchTrade(peer, trades).toPromise();
         let result;
+        const _trades = pintswapProxy.createBatchTrade(peer, trades);
+        logger.info(JSON.stringify(_trades));
+        await _trades.toPromise();
         if (broadcast) {
           const blockNumber = await providerProxy.getBlockNumber();
           const bundleResult = (await sendBundle(
             this.pintswap.logger,
             this.flashbots,
             txs.map((v) => v.transaction),
-            blockNumber + 1,
+            blockNumber + 1
           )) as any;
           result = JSON.stringify(bundleResult, null, 2);
         } else result = JSON.stringify(txs, null, 2);
@@ -564,7 +567,7 @@ export class PintswapDaemon {
     const unsubscribe: Handler = async (req, res) => {
       (async () => {
         await this.pintswap.pubsub.unsubscribe(
-          "/pintswap/0.1.0/publish-orders",
+          "/pintswap/0.1.0/publish-orders"
         );
         res.json({
           status: "OK",
@@ -801,7 +804,7 @@ export class PintswapDaemon {
   bindRoutes() {
     this.handlers = this.createHandlers();
     Object.entries(this.handlers.post).map((d) => {
-      this.rpc.post('/' + convertToRoute(d[0]), d[1]);
+      this.rpc.post("/" + convertToRoute(d[0]), d[1]);
     });
     this.server = createServer(this.rpc);
     this.wsServer = new WebSocketServer({ server: this.server });
@@ -812,7 +815,7 @@ export class PintswapDaemon {
           message: {
             data: "UPDATE",
           },
-        }),
+        })
       );
     });
   }
