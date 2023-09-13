@@ -1,7 +1,7 @@
 import express from "express";
 import { createLogger } from "@pintswap/sdk/lib/logger";
 import { ethers, AbstractProvider, Transaction } from "ethers";
-import { hashOffer, Pintswap } from "@pintswap/sdk/src.ts/index";
+import { hashOffer, Pintswap } from "@pintswap/sdk";
 import { mkdirp } from "mkdirp";
 import path from "path";
 import bodyParser from "body-parser";

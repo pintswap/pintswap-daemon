@@ -2,7 +2,7 @@
 /// <reference types="node" />
 import express from "express";
 import { ethers } from "ethers";
-import { Pintswap } from "@pintswap/sdk/src.ts/index";
+import { Pintswap } from "@pintswap/sdk";
 import PeerId from "peer-id";
 import { ZkSyncProvider } from "ethers-v6-zksync-compat";
 import { createServer } from "http";
