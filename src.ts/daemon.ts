@@ -352,7 +352,7 @@ export class PintswapDaemon {
       (async () => {
         try {
           let { peer: thisPeer } = req.body;
-          if (thisPeer.match("."))
+          if (thisPeer.indexOf(".") !== -1)
             thisPeer = await this.pintswap.resolveName(thisPeer);
           //@ts-ignore
           const peerObject = await this.pintswap.getUserData(thisPeer);
@@ -433,7 +433,7 @@ export class PintswapDaemon {
       (async () => {
         try {
           let { peer } = req.body;
-          if (peer.match(".")) peer = await this.pintswap.resolveName(peer);
+          if (peer.indexOf(".") !== -1) peer = await this.pintswap.resolveName(peer);
           //@ts-ignore
           const peerObject = await this.pintswap.getUserData(peer);
           res.setHeader("content-type", "image/x-png");
