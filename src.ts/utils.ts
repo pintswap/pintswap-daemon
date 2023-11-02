@@ -42,6 +42,7 @@ export async function sendBundle(
         }),
     ),
   );
+  console.log("list", list)
   const { bundleTransactions } = (list as any).find(Boolean);
   const { hash: txHash } = bundleTransactions[bundleTransactions.length - 1];
 
