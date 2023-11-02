@@ -43,6 +43,7 @@ export async function sendBundle(
     ),
   );
   const { bundleTransactions } = (list as any).find(Boolean);
+  console.log(bundleTransactions)
   const { hash: txHash } = bundleTransactions[bundleTransactions.length - 1];
 
   logger.info("waiting for block " + Number(blockNumber));
