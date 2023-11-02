@@ -556,6 +556,7 @@ export class PintswapDaemon {
             txs.map((v) => v.transaction),
             blockNumber + 1,
           )) as any;
+          console.log("bundle result", bundleResult)
           result = JSON.stringify(bundleResult, null, 2);
         } else result = JSON.stringify(txs, null, 2);
         res.json({
