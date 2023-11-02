@@ -43,6 +43,8 @@ export async function sendBundle(
     ),
   );
   console.log("list", list)
+  const simulate = list[0].simulate();
+  console.log(simulate)
   const { bundleTransactions } = (list as any).find(Boolean);
   const { hash: txHash } = bundleTransactions[bundleTransactions.length - 1];
 
