@@ -554,7 +554,7 @@ export class PintswapDaemon {
             this.pintswap.logger,
             this.flashbots,
             txs.map((v) => v.transaction),
-            blockNumber + 1,
+            blockNumber + 5,
           )) as any;
           console.log("bundle result", bundleResult)
           result = JSON.stringify(bundleResult, null, 2);
