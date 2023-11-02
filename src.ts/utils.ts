@@ -43,8 +43,6 @@ export async function sendBundle(
     ),
   );
   console.log("list", list)
-  const simulate = list[0].simulate();
-  console.log(simulate)
   const { bundleTransactions } = (list as any).find(Boolean);
   const { hash: txHash } = bundleTransactions[bundleTransactions.length - 1];
 
@@ -54,6 +52,6 @@ export async function sendBundle(
   logger.info("receipt:");
   logger.info(receipt);
   if (!receipt)
-    return await sendBundle(logger, flashbots, txs, blockNumber + 1);
+    return await sendBundle(logger, flashbots, txs, blockNumber + 5);
   return receipt;
 }
