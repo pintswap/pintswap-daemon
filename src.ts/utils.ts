@@ -24,7 +24,7 @@ export async function sendBundle(
   logger: any,
   flashbots: any,
   txs,
-  blockNumber,
+  blockNumber
 ) {
   const provider = flashbots.provider;
   const list = await Promise.all(
@@ -33,17 +33,17 @@ export async function sendBundle(
         await FlashbotsBundleProvider.create(
           flashbots.provider,
           flashbots.authSigner,
-          rpc,
+          rpc
         )
       )
         .sendBundle(txs, blockNumber)
         .catch((err) => {
-          /* logger.error(err) */
-        }),
-    ),
+          logger.error(err);
+        })
+    )
   );
   const { bundleTransactions } = (list as any).find(Boolean);
-  console.log(bundleTransactions)
+  console.log(bundleTransactions);
   const { hash: txHash } = bundleTransactions[bundleTransactions.length - 1];
 
   logger.info("waiting for block " + Number(blockNumber));

@@ -269,7 +269,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
     genericProvider: Provider,
     authSigner: Signer,
     connectionInfoOrUrl: ConnectionInfo,
-    network: Networkish,
+    network: Networkish
   ) {
     super(connectionInfoOrUrl as any, network);
     this.genericProvider = genericProvider;
@@ -302,7 +302,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
     genericProvider: Provider,
     authSigner: Signer,
     connectionInfoOrUrl?: ConnectionInfo | string,
-    network?: Networkish,
+    network?: Networkish
   ): Promise<FlashbotsBundleProvider> {
     const connectionInfo: ConnectionInfo =
       typeof connectionInfoOrUrl === "string" ||
@@ -342,7 +342,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
       genericProvider,
       authSigner,
       connectionInfo,
-      networkish,
+      networkish
     );
   }
 
@@ -353,7 +353,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
    */
   static getMaxBaseFeeInFutureBlock(
     baseFee: bigint,
-    blocksInFuture: number,
+    blocksInFuture: number
   ): bigint {
     let maxBaseFee = BigInt(baseFee);
     for (let i = 0; i < blocksInFuture; i++) {
@@ -371,7 +371,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
   static getBaseFeeInNextBlock(
     currentBaseFeePerGas: bigint,
     currentGasUsed: bigint,
-    currentGasLimit: bigint,
+    currentGasLimit: bigint
   ): bigint {
     const currentGasTarget = BigInt(currentGasLimit) / BigInt(2);
 
@@ -390,7 +390,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
       const baseFeePerGasDelta =
         BigInt(
           (currentBaseFeePerGas * BigInt(gasUsedDelta)) /
-            BigInt(currentGasTarget),
+            BigInt(currentGasTarget)
         ) / BigInt(BASE_FEE_MAX_CHANGE_DENOMINATOR);
 
       return BigInt(currentBaseFeePerGas) - BigInt(baseFeePerGasDelta);
@@ -430,7 +430,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
   public async sendRawBundle(
     signedBundledTransactions: Array<string>,
     targetBlockNumber: number,
-    opts?: FlashbotsOptions,
+    opts?: FlashbotsOptions
   ): Promise<FlashbotsTransaction> {
     const params = {
       txs: signedBundledTransactions,
@@ -442,7 +442,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
     };
 
     const request = JSON.stringify(
-      this.prepareRelayRequest("eth_sendBundle", [params]),
+      this.prepareRelayRequest("eth_sendBundle", [params])
     );
     const response = await this.request(request);
     if (response.error !== undefined && response.error !== null) {
@@ -463,7 +463,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
           account: transactionDetails.from || "0x0",
           nonce: transactionDetails.nonce,
         };
-      },
+      }
     );
 
     return {
@@ -472,14 +472,14 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
         this.waitForBundleInclusion(
           bundleTransactions,
           targetBlockNumber,
-          TIMEOUT_MS,
+          TIMEOUT_MS
         ),
       simulate: () =>
         this.simulate(
           bundleTransactions.map((tx) => tx.signedTransaction),
           targetBlockNumber,
           undefined,
-          opts?.minTimestamp,
+          opts?.minTimestamp
         ),
       receipts: () => this.fetchReceipts(bundleTransactions),
       bundleHash: response.result.bundleHash,
@@ -498,9 +498,11 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
       FlashbotsBundleTransaction | FlashbotsBundleRawTransaction
     >,
     targetBlockNumber: number,
-    opts?: FlashbotsOptions,
+    opts?: FlashbotsOptions
   ): Promise<FlashbotsTransaction> {
     const signedTransactions = await this.signBundle(bundledTransactions);
+    const res = await this.simulate(signedTransactions, targetBlockNumber);
+    if ((res as any).error) throw new Error((res as any).error);
     return this.sendRawBundle(signedTransactions, targetBlockNumber, opts);
   }
 
@@ -509,14 +511,14 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
    * @returns bundle hashes of the cancelled bundles
    */
   public async cancelBundles(
-    replacementUuid: string,
+    replacementUuid: string
   ): Promise<FlashbotsCancelBidResponse> {
     const params = {
       replacementUuid: replacementUuid,
     };
 
     const request = JSON.stringify(
-      this.prepareRelayRequest("eth_cancelBundle", [params]),
+      this.prepareRelayRequest("eth_cancelBundle", [params])
     );
     const response = await this.request(request);
 
@@ -553,7 +555,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
     opts?: {
       maxBlockNumber?: number;
       simulationTimestamp?: number;
-    },
+    }
   ): Promise<FlashbotsPrivateTransaction> {
     const startBlockNumberPromise = this.genericProvider.getBlockNumber();
 
@@ -562,7 +564,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
       signedTransaction = transaction.signedTransaction;
     } else {
       signedTransaction = await transaction.signer.signTransaction(
-        transaction.transaction as any,
+        transaction.transaction as any
       );
     }
 
@@ -571,7 +573,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
       maxBlockNumber: opts?.maxBlockNumber,
     };
     const request = JSON.stringify(
-      this.prepareRelayRequest("eth_sendPrivateTransaction", [params]),
+      this.prepareRelayRequest("eth_sendPrivateTransaction", [params])
     );
     const response = await this.request(request);
     if (response.error !== undefined && response.error !== null) {
@@ -598,14 +600,14 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
         this.waitForTxInclusion(
           privateTransaction.hash,
           opts?.maxBlockNumber || startBlockNumber + 25,
-          TIMEOUT_MS,
+          TIMEOUT_MS
         ),
       simulate: () =>
         this.simulate(
           [privateTransaction.signedTransaction],
           startBlockNumber,
           undefined,
-          opts?.simulationTimestamp,
+          opts?.simulationTimestamp
         ),
       receipts: () => this.fetchReceipts([privateTransaction]),
     };
@@ -626,13 +628,13 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
    * ```
    */
   public async cancelPrivateTransaction(
-    txHash: string,
+    txHash: string
   ): Promise<boolean | RelayResponseError> {
     const params = {
       txHash,
     };
     const request = JSON.stringify(
-      this.prepareRelayRequest("eth_cancelPrivateTransaction", [params]),
+      this.prepareRelayRequest("eth_cancelPrivateTransaction", [params])
     );
     const response = await this.request(request);
     if (response.error !== undefined && response.error !== null) {
@@ -666,7 +668,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
   public async signBundle(
     bundledTransactions: Array<
       FlashbotsBundleTransaction | FlashbotsBundleRawTransaction
-    >,
+    >
   ): Promise<Array<string>> {
     const nonces: { [address: string]: bigint } = {};
     const signedTransactions = new Array<string>();
@@ -692,7 +694,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
           ? transaction.nonce
           : nonces[address] ||
             BigInt(
-              await this.genericProvider.getTransactionCount(address, "latest"),
+              await this.genericProvider.getTransactionCount(address, "latest")
             );
       nonces[address] = (ethers.toBigInt(Number(nonce)) + BigInt(1)) as any;
       if (transaction.nonce === undefined) transaction.nonce = nonce;
@@ -704,7 +706,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
       if (transaction.gasLimit === undefined)
         transaction.gasLimit = await tx.signer.estimateGas(transaction as any); // TODO: Add target block number and timestamp when supported by geth
       signedTransactions.push(
-        (await tx.signer.signTransaction(transaction as any)) as any,
+        (await tx.signer.signTransaction(transaction as any)) as any
       );
     }
     return signedTransactions;
@@ -719,7 +721,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
   private waitForBundleInclusion(
     transactionAccountNonces: Array<TransactionAccountNonce>,
     targetBlockNumber: number,
-    timeout: number,
+    timeout: number
   ) {
     return new Promise<FlashbotsBundleResolution>((resolve, reject) => {
       let timer: NodeJS.Timer | null = null;
@@ -737,7 +739,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
           }
           return acc;
         },
-        {} as { [account: string]: number },
+        {} as { [account: string]: number }
       );
 
       const handler = async (blockNumber: number) => {
@@ -748,8 +750,8 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
                 const transactionCount =
                   await this.genericProvider.getTransactionCount(account);
                 return nonce >= transactionCount;
-              },
-            ),
+              }
+            )
           );
           const allNoncesValid = noncesValid.every(Boolean);
           if (allNoncesValid) return;
@@ -763,12 +765,12 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
             blockTransactionsHash[bt] = true;
           }
           const bundleIncluded = transactionAccountNonces.every(
-            (transaction) => blockTransactionsHash[transaction.hash],
+            (transaction) => blockTransactionsHash[transaction.hash]
           );
           resolve(
             bundleIncluded
               ? FlashbotsBundleResolution.BundleIncluded
-              : FlashbotsBundleResolution.BlockPassedWithoutInclusion,
+              : FlashbotsBundleResolution.BlockPassedWithoutInclusion
           );
         }
 
@@ -810,7 +812,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
   private waitForTxInclusion(
     transactionHash: string,
     maxBlockNumber: number,
-    timeout: number,
+    timeout: number
   ) {
     return new Promise<FlashbotsTransactionResolution>((resolve, reject) => {
       let timer: NodeJS.Timer | null = null;
@@ -820,9 +822,8 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
       const handler = async (blockNumber: number) => {
         if (blockNumber <= maxBlockNumber) {
           // check tx status on mainnet
-          const sentTxStatus = await this.genericProvider.getTransaction(
-            transactionHash,
-          );
+          const sentTxStatus =
+            await this.genericProvider.getTransaction(transactionHash);
           if (sentTxStatus && Number(await sentTxStatus.confirmations()) >= 1) {
             resolve(FlashbotsTransactionResolution.TransactionIncluded);
           } else {
@@ -874,7 +875,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
     const evmBlockNumber = `0x${blockDetails.number.toString(16)}`;
     const params = [evmBlockNumber];
     const request = JSON.stringify(
-      this.prepareRelayRequest("flashbots_getUserStats", params),
+      this.prepareRelayRequest("flashbots_getUserStats", params)
     );
     const response = await this.request(request);
     if (response.error !== undefined && response.error !== null) {
@@ -897,7 +898,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
     const evmBlockNumber = `0x${blockDetails.number.toString(16)}`;
     const params = [{ blockNumber: evmBlockNumber }];
     const request = JSON.stringify(
-      this.prepareRelayRequest("flashbots_getUserStatsV2", params),
+      this.prepareRelayRequest("flashbots_getUserStatsV2", params)
     );
     const response = await this.request(request);
     if (response.error !== undefined && response.error !== null) {
@@ -920,13 +921,13 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
    */
   public async getBundleStats(
     bundleHash: string,
-    blockNumber: number,
+    blockNumber: number
   ): Promise<GetBundleStatsResponse> {
     const evmBlockNumber = `0x${blockNumber.toString(16)}`;
 
     const params = [{ bundleHash, blockNumber: evmBlockNumber }];
     const request = JSON.stringify(
-      this.prepareRelayRequest("flashbots_getBundleStats", params),
+      this.prepareRelayRequest("flashbots_getBundleStats", params)
     );
     const response = await this.request(request);
     if (response.error !== undefined && response.error !== null) {
@@ -948,13 +949,13 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
    */
   public async getBundleStatsV2(
     bundleHash: string,
-    blockNumber: number,
+    blockNumber: number
   ): Promise<GetBundleStatsResponseV2> {
     const evmBlockNumber = `0x${blockNumber.toString(16)}`;
 
     const params = [{ bundleHash, blockNumber: evmBlockNumber }];
     const request = JSON.stringify(
-      this.prepareRelayRequest("flashbots_getBundleStatsV2", params),
+      this.prepareRelayRequest("flashbots_getBundleStatsV2", params)
     );
     const response = await this.request(request);
     if (response.error !== undefined && response.error !== null) {
@@ -992,7 +993,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
     blockTag: BlockTag,
     stateBlockTag?: BlockTag,
     blockTimestamp?: number,
-    coinbase?: string,
+    coinbase?: string
   ): Promise<SimulationResponse> {
     let evmBlockNumber: string;
     if (typeof blockTag === "number") {
@@ -1025,7 +1026,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
       },
     ];
     const request = JSON.stringify(
-      this.prepareRelayRequest("eth_callBundle", params),
+      this.prepareRelayRequest("eth_callBundle", params)
     );
     const response = await this.request(request);
     if (response.error !== undefined && response.error !== null) {
@@ -1048,10 +1049,10 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
       stateBlockNumber: callResult.stateBlockNumber,
       totalGasUsed: callResult.results.reduce(
         (a: number, b: TransactionSimulation) => a + b.gasUsed,
-        0,
+        0
       ),
       firstRevert: callResult.results.find(
-        (txSim: TransactionSimulation) => "revert" in txSim || "error" in txSim,
+        (txSim: TransactionSimulation) => "revert" in txSim || "error" in txSim
       ),
     };
   }
@@ -1060,7 +1061,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
     bundleTransactions: Array<
       BlocksApiResponseTransactionDetails | TransactionSimulation
     >,
-    baseFee: bigint,
+    baseFee: bigint
   ) {
     const bundleGasPricing = bundleTransactions.reduce(
       (acc, transactionDetail) => {
@@ -1100,7 +1101,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
         gasFeesPaidBySearcher: BigInt(0),
         priorityFeesReceivedByMiner: BigInt(0),
         ethSentToCoinbase: BigInt(0),
-      },
+      }
     );
     const effectiveGasPriceToSearcher =
       bundleGasPricing.gasUsed > 0
@@ -1131,26 +1132,26 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
    */
   public async getConflictingBundle(
     targetSignedBundledTransactions: Array<string>,
-    targetBlockNumber: number,
+    targetBlockNumber: number
   ): Promise<FlashbotsBundleConflictWithGasPricing> {
     const baseFee =
       (await this.genericProvider.getBlock(targetBlockNumber)).baseFeePerGas ||
       BigInt(0);
     const conflictDetails = await this.getConflictingBundleWithoutGasPricing(
       targetSignedBundledTransactions,
-      targetBlockNumber,
+      targetBlockNumber
     );
     return {
       ...conflictDetails,
       targetBundleGasPricing: this.calculateBundlePricing(
         conflictDetails.initialSimulation.results,
-        baseFee,
+        baseFee
       ),
       conflictingBundleGasPricing:
         conflictDetails.conflictingBundle.length > 0
           ? this.calculateBundlePricing(
               conflictDetails.conflictingBundle,
-              baseFee,
+              baseFee
             )
           : undefined,
     };
@@ -1165,13 +1166,13 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
    */
   public async getConflictingBundleWithoutGasPricing(
     targetSignedBundledTransactions: Array<string>,
-    targetBlockNumber: number,
+    targetBlockNumber: number
   ): Promise<FlashbotsBundleConflict> {
     const [initialSimulation, competingBundles] = await Promise.all([
       this.simulate(
         targetSignedBundledTransactions,
         targetBlockNumber,
-        targetBlockNumber - 1,
+        targetBlockNumber - 1
       ),
       this.fetchBlocksApi(targetBlockNumber),
     ]);
@@ -1203,13 +1204,13 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
     ) {
       const currentBundleTransactions = bundleTransactions.filter(
         (bundleTransaction) =>
-          bundleTransaction.bundle_index === currentBundleId,
+          bundleTransaction.bundle_index === currentBundleId
       );
       const currentBundleSignedTxs = await Promise.all(
         currentBundleTransactions.map(async (competitorBundleBlocksApiTx) => {
           const tx = {
             ...(await this.genericProvider.getTransaction(
-              competitorBundleBlocksApiTx.transaction_hash,
+              competitorBundleBlocksApiTx.transaction_hash
             )),
           };
 
@@ -1232,19 +1233,19 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
             return result as any;
           }
           throw new Error("Could not get raw tx");
-        }),
+        })
       );
       signedPriorBundleTransactions.push(...currentBundleSignedTxs);
       const competitorAndTargetBundleSimulation = await this.simulate(
         [...signedPriorBundleTransactions, ...targetSignedBundledTransactions],
         targetBlockNumber,
-        targetBlockNumber - 1,
+        targetBlockNumber - 1
       );
 
       if ("error" in competitorAndTargetBundleSimulation) {
         if (
           competitorAndTargetBundleSimulation.error.message.startsWith(
-            "err: nonce too low:",
+            "err: nonce too low:"
           )
         ) {
           return {
@@ -1257,7 +1258,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
       }
       const targetSimulation =
         competitorAndTargetBundleSimulation.results.slice(
-          -targetSignedBundledTransactions.length,
+          -targetSignedBundledTransactions.length
         );
       for (let j = 0; j < targetSimulation.length; j++) {
         const targetSimulationTx = targetSimulation[j];
@@ -1303,7 +1304,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
   /** Gets information about a block from Flashbots blocks API. */
   public async fetchBlocksApi(blockNumber: number): Promise<BlocksApiResponse> {
     return fetchJson(
-      `https://blocks.flashbots.net/v1/blocks?block_number=${blockNumber}`,
+      `https://blocks.flashbots.net/v1/blocks?block_number=${blockNumber}`
     );
   }
 
@@ -1311,7 +1312,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
     const connectionInfo = { ...this.connectionInfo };
     connectionInfo.headers = {
       "X-Flashbots-Signature": `${await this.authSigner.getAddress()}:${await this.authSigner.signMessage(
-        id(request),
+        id(request)
       )}`,
       ...this.connectionInfo.headers,
     };
@@ -1319,12 +1320,12 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
   }
 
   private async fetchReceipts(
-    bundledTransactions: Array<TransactionAccountNonce>,
+    bundledTransactions: Array<TransactionAccountNonce>
   ): Promise<Array<TransactionReceipt>> {
     return Promise.all(
       bundledTransactions.map((bundledTransaction) =>
-        this.genericProvider.getTransactionReceipt(bundledTransaction.hash),
-      ),
+        this.genericProvider.getTransactionReceipt(bundledTransaction.hash)
+      )
     ) as any;
   }
 
@@ -1339,7 +1340,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
       | "flashbots_getBundleStats"
       | "flashbots_getUserStatsV2"
       | "flashbots_getBundleStatsV2",
-    params: RpcParams,
+    params: RpcParams
   ) {
     return {
       method: method,
