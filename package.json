@@ -16,7 +16,7 @@
   "license": "MIT",
   "private": false,
   "dependencies": {
-    "@pintswap/sdk": "https://github.com/pintswap/pintswap-sdk",
+    "@pintswap/sdk": "^1.4.20",
     "body-parser": "^1.20.2",
     "bufferutil": "^4.0.7",
     "change-case": "^4.1.2",
