@@ -18,6 +18,7 @@ import { callBundle, sendBundle } from "./utils";
 import { pack } from "./repack";
 import { estimateGas } from "estimate-hypothetical-gas";
 import { fromLimitOrder } from "./orderbook";
+import { mapValues } from "lodash";
 
 type Handler = (req: any, res: any) => void;
 
@@ -26,6 +27,13 @@ const fetch = global.fetch;
 const GASLIMIT_CAP = BigInt(600000);
 
 let id = 1;
+
+function mapBigIntToHexRecursive(o) {
+  if (Array.isArray(o)) return o.map((v) => mapBigIntToHexRecursive(v));
+  if (typeof o === 'object') return mapValues(o, (v) => mapBigIntToHexRecursive(v));
+  if (typeof o === 'bigint') return '0x' + o.toString(16);
+  return o;
+}
 
 export async function signBundle(signer, body) {
   return `${await signer.getAddress()}:${await signer.signMessage(
@@ -558,12 +566,12 @@ export class PintswapDaemon {
         if (broadcast) {
           const blockNumber = await providerProxy.getBlockNumber();
 	  const packed = await pack(this.pintswap.signer, txs.map((v) => v.transaction));
-	  logger.info(await callBundle(
+	  logger.info(mapBigIntToHexRecursive(await callBundle(
             this.pintswap.logger,
 	    this.flashbots,
 	    packed,
             blockNumber + 1
-	  ));
+	  )));
           const bundleResult = (await sendBundle(
             this.pintswap.logger,
             this.flashbots,
