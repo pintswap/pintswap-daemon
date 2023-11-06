@@ -23,6 +23,8 @@ type Handler = (req: any, res: any) => void;
 
 const fetch = global.fetch;
 
+const GASLIMIT_CAP = BigInt(600000);
+
 let id = 1;
 
 export async function signBundle(signer, body) {
@@ -542,7 +544,11 @@ export class PintswapDaemon {
         const { provider } = this.pintswap.signer;
         providerProxy.estimateGas = async function (...args) {
           const [txParams] = args;
-          if (!txParams.to) return await estimateGasBound(...args);
+          if (!txParams.to) {
+            const gasLimitEstimate = await estimateGasBound(...args);
+	    if (BigInt(gasLimitEstimate) > GASLIMIT_CAP) return GASLIMIT_CAP;
+	    else return gasLimitEstimate;
+	  }
           return await estimateGasOriginal.apply(provider, args);
         };
         let result;
