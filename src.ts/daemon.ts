@@ -30,6 +30,7 @@ let id = 1;
 
 function mapBigIntToHexRecursive(o) {
   if (Array.isArray(o)) return o.map((v) => mapBigIntToHexRecursive(v));
+  if (o === null) return o;
   if (typeof o === 'object') return mapValues(o, (v) => mapBigIntToHexRecursive(v));
   if (typeof o === 'bigint') return '0x' + o.toString(16);
   return o;
