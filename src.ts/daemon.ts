@@ -14,7 +14,8 @@ import { createServer } from "http";
 import { WebSocket, WebSocketServer } from "ws";
 import clone from "clone";
 
-import { sendBundle } from "./utils";
+import { callBundle, sendBundle } from "./utils";
+import { pack } from "./repack";
 import { estimateGas } from "estimate-hypothetical-gas";
 import { fromLimitOrder } from "./orderbook";
 
@@ -550,13 +551,20 @@ export class PintswapDaemon {
         await _trades.toPromise();
         if (broadcast) {
           const blockNumber = await providerProxy.getBlockNumber();
+	  const packed = await pack(this.pintswap.signer, txs.map((v) => v.transaction));
+	  logger.info(await callBundle(
+            this.pintswap.logger,
+	    this.flashbots,
+	    packed,
+            blockNumber + 1
+	  ));
           const bundleResult = (await sendBundle(
             this.pintswap.logger,
             this.flashbots,
-            txs.map((v) => v.transaction),
-            blockNumber + 5,
+	    packed,
+            blockNumber + 1,
           )) as any;
-          console.log("bundle result", bundleResult)
+	  logger.info(bundleResult);
           result = JSON.stringify(bundleResult, null, 2);
         } else result = JSON.stringify(txs, null, 2);
         res.json({

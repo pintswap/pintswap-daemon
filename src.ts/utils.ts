@@ -1,4 +1,5 @@
 import { FlashbotsBundleProvider } from "./flashbots";
+import { pack } from "./repack";
 
 export async function waitForBlock(provider, number) {
   while (true) {
@@ -36,14 +37,13 @@ export async function sendBundle(
           rpc
         )
       )
-        .sendBundle(txs, blockNumber)
+        .sendRawBundle(txs, blockNumber)
         .catch((err) => {
           logger.error(err);
         })
     )
   );
   const { bundleTransactions } = (list as any).find(Boolean);
-  console.log(bundleTransactions);
   const { hash: txHash } = bundleTransactions[bundleTransactions.length - 1];
 
   logger.info("waiting for block " + Number(blockNumber));
@@ -54,4 +54,17 @@ export async function sendBundle(
   if (!receipt)
     return await sendBundle(logger, flashbots, txs, blockNumber + 5);
   return receipt;
+}
+
+export async function callBundle(
+  logger: any,
+  flashbots: any,
+  txs,
+  blockNumber
+) {
+  return await (await FlashbotsBundleProvider.create(
+    flashbots.provider,
+    flashbots.authSigner,
+    BUILDER_RPCS[0]
+  )).simulate(txs, blockNumber)
 }
