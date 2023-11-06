@@ -264,7 +264,7 @@ export class PintswapDaemon {
     this.rpc.use((req, res, next) => {
       const json = res.json;
       delete req.body[0];
-      res.json = function (...args) {
+      (res as any).json = function (...args) {
         const [o] = args;
         if (o.status === "NO") {
           o.result =
