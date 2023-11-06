@@ -5,13 +5,13 @@ yargs.parserConfiguration({
 import fetch from "node-fetch";
 import path from "path";
 
-import { camelCase } from "change-case";
 import url from "url";
 import util from "util";
 import { createLogger } from "@pintswap/sdk/lib/logger";
 import { chunk } from "lodash";
 import { ethers } from "ethers";
 import { WebSocket } from "ws";
+import { camelCase } from "./utils";
 
 export const logger: any = createLogger("pintswap-cli");
 export const daemonLogger: any = createLogger("pintswap-daemon");

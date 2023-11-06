@@ -9,6 +9,11 @@ export async function waitForBlock(provider, number) {
   }
 }
 
+export function camelCase(s: string) {
+  const parts = s.split('-');
+  return parts[0] + parts.slice(1).map((v) => v[0].toUpperCase() + v.substr(1).toLowerCase()).join('');
+}
+
 const BUILDER_RPCS = [
   "https://relay.flashbots.net",
   "https://builder0x69.io",
