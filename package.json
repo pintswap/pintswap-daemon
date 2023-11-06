@@ -9,17 +9,19 @@
   },
   "scripts": {
     "build": "tsc",
-    "prettier": "prettier --write ./src.ts/**/*.ts"
+    "forknet": "anvil -f https://mainnet.infura.io/v3/84842078b09946638c03157f83405213 --auto-impersonate -m \"assume fitness moment future coin dutch wait join delay faint response skin\"",
+    "prettier": "prettier --write ./src.ts/**/*.ts",
+    "test": "ts-mocha --timeout 0 ./test/**.ts"
   },
   "repository": "https://github.com/pintswap/pintswap-daemon",
   "author": "altinak",
   "license": "MIT",
   "private": false,
   "dependencies": {
-    "@pintswap/sdk": "^1.4.20",
+    "@pintswap/sdk": "^1.4.21",
     "body-parser": "^1.20.2",
     "bufferutil": "^4.0.7",
-    "change-case": "^4.1.2",
+    "change-case": "^5.1.2",
     "estimate-hypothetical-gas": "https://github.com/pintswap/estimate-hypothetical-gas",
     "ethers": "^6.7.0",
     "ethers-v6-zksync-compat": "https://github.com/pintswap/ethers-v6-zksync-compat",
@@ -35,7 +37,10 @@
   "devDependencies": {
     "@flashbots/mev-share-client": "^0.7.6",
     "@types/node": "^18.15.11",
+    "chai": "^4.3.10",
+    "mocha": "^10.2.0",
     "prettier": "^3.0.1",
+    "ts-mocha": "^10.0.0",
     "typescript": "^5.0.4"
   }
 }
