@@ -399,7 +399,6 @@ export class PintswapDaemon {
         }
       })().catch((err) => this.logger.error(err));
     };
-
     const publish: Handler = (req, res) => {
       if (publisher) {
         this.logger.info("already publishing offers");
@@ -726,6 +725,20 @@ export class PintswapDaemon {
         result: this.pintswap.signer.address,
       });
     };
+    const userData: Handler = (req, res) => {
+      (async () => {
+        res.json({
+          status: 'OK',
+          result: this.pintswap.userData
+        })
+      })().catch(err => {
+        this.logger.error(err);
+        res.json({
+          status: 'NO',
+          result: err.message
+        })
+      })
+    }
     const setBio: Handler = (req, res) => {
       (async () => {
         const { bio } = req.body;
@@ -828,6 +841,7 @@ export class PintswapDaemon {
         offers,
         del,
         clear,
+        userData
       },
     };
   }

@@ -80,6 +80,7 @@ export declare class PintswapDaemon {
             offers: Handler;
             del: Handler;
             clear: Handler;
+            userData: Handler;
         };
     };
     bindRoutes(): void;
