@@ -414,6 +414,22 @@ export class PintswapDaemon {
         result: "OK",
       });
     };
+    const publishOnce: Handler = (req, res) => {
+      (async () => {
+        this.logger.info('publishing ' + String(Object.keys(this.pintswap.offers).length) + ' offers');
+        await this.pintswap.publishOffers();
+	res.json({
+          status: "OK",
+	  result: "OK"
+	});
+      })().catch((err) => {
+        res.json({
+          status: "NO",
+	  result: err
+	});
+      });
+    };
+
     const orderbook: Handler = (req, res) => {
       (async () => {
         try {
@@ -825,6 +841,7 @@ export class PintswapDaemon {
         peer,
         resolve,
         publish,
+	publishOnce,
         orderbook,
         peerImage,
         subscribe,

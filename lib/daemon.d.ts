@@ -64,6 +64,7 @@ export declare class PintswapDaemon {
             peer: Handler;
             resolve: Handler;
             publish: Handler;
+            publishOnce: Handler;
             orderbook: Handler;
             peerImage: (req: any, res: any) => void;
             subscribe: (req: any, res: any) => void;
