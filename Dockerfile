@@ -2,4 +2,4 @@ FROM node:lts
 WORKDIR /app
 COPY . .
 RUN yarn
-CMD ["bash", "docker-entrypoint.sh"]
+CMD ["/bin/bash", "docker-entrypoint.sh"]
