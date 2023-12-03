@@ -21,6 +21,7 @@ const BUILDER_RPCS = [
   "https://rsync-builder.xyz",
   "https://rpc.titanbuilder.xyz",
   "https://api.edennetwork.io/v1/bundle",
+  "https://rpc.lokibuilder.xyz",
 ];
 
 export const timeout = async (n) =>
