@@ -18,7 +18,7 @@
   "license": "MIT",
   "private": false,
   "dependencies": {
-    "@pintswap/sdk": "^1.4.30",
+    "@pintswap/sdk": "^1.4.31",
     "body-parser": "^1.20.2",
     "bufferutil": "^4.0.7",
     "change-case": "^5.1.2",
