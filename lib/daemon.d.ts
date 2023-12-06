@@ -51,6 +51,7 @@ export declare class PintswapDaemon {
         provider: ethers.Provider;
         authSigner: ethers.Wallet;
     };
+    sendBundle(packed: any, blockNumber: any): Promise<any>;
     constructor();
     static create(): Promise<PintswapDaemon>;
     start(): Promise<void>;

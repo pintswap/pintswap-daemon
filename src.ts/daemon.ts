@@ -231,6 +231,14 @@ export class PintswapDaemon {
   get flashbots() {
     return { provider: this.wallet.provider, authSigner: this.wallet };
   }
+  async sendBundle(packed, blockNumber) {
+    return await sendBundle(
+      this.pintswap.logger,
+      this.flashbots,
+      packed,
+      blockNumber + 1,
+    ) as any;
+  }
   constructor() {
     this.logger = logger;
     this.wallet = walletFromEnv().connect(providerFromEnv()) as ethers.Wallet;
@@ -588,12 +596,10 @@ export class PintswapDaemon {
 	    packed,
             blockNumber + 1
 	  )));
-          const bundleResult = (await sendBundle(
-            this.pintswap.logger,
-            this.flashbots,
+          const bundleResult = (await this.sendBundle(
 	    packed,
             blockNumber + 1,
-          )) as any;
+          ));
 	  logger.info(bundleResult);
           result = JSON.stringify(bundleResult, null, 2);
         } else result = JSON.stringify(txs, null, 2);
