@@ -775,7 +775,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
         }
 
         if (timer) {
-          clearTimeout(timer);
+          clearTimeout(timer as any);
         }
         if (done) {
           return;
@@ -836,7 +836,7 @@ export class FlashbotsBundleProvider extends JsonRpcProvider {
         }
 
         if (timer) {
-          clearTimeout(timer);
+          clearTimeout(timer as any);
         }
         if (done) {
           return;
