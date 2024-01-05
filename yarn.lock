@@ -628,10 +628,10 @@
   resolved "https://registry.yarnpkg.com/@noble/secp256k1/-/secp256k1-1.7.1.tgz#b251c70f824ce3ca7f8dc3df08d58f005cc0507c"
   integrity sha512-hOUk6AyBFmqVrv7k5WAw/LpszxVbj9gGN4JRkIX52fdFAj1UA61KXmZDvqVEm+pOyec3+fIeZB02LYa/pWOArw==
 
-"@pintswap/sdk@^1.5.0":
-  version "1.5.0"
-  resolved "https://registry.yarnpkg.com/@pintswap/sdk/-/sdk-1.5.0.tgz#3ae9afb5c29a310a4b56a9ca05115aa8f8c4d6fe"
-  integrity sha512-YasUTxH4NU07KZ8U59rDgRZhxygbOouAoYHEME/CD3Gddnp9Tv3KteDrj7nAJ/7OgQCxl6g0hbAtH9dClfwcLQ==
+"@pintswap/sdk@^1.5.41":
+  version "1.5.41"
+  resolved "https://registry.yarnpkg.com/@pintswap/sdk/-/sdk-1.5.41.tgz#f6e4750e8bebb8bce2f89a00cecdbd1f8a469e0d"
+  integrity sha512-gtbwujRBkWgJv/6mDPf0IGOrq+ixXzzMxIKFvlCmW8eKDS7II/b0Lqvl+6DUGGEztN7NtQLVcFVA1d4oxBAZbw==
   dependencies:
     "@multiformats/multiaddr" "^12.1.0"
     "@noble/ed25519" "^1.6.0"
@@ -651,13 +651,13 @@
     evmdis "https://github.com/kungfuflex/evmdis"
     is-browser "^2.1.0"
     libp2p "^0.36.2"
-    libp2p-bootstrap "^0.14.0"
+    libp2p-bootstrap "0.14.0"
     libp2p-crypto "^0.21.2"
-    libp2p-gossipsub "^0.13.0"
+    libp2p-gossipsub "0.14.1"
     libp2p-kad-dht "^0.28.6"
     libp2p-mplex "^0.10.7"
     libp2p-noise "^4.0.0"
-    libp2p-webrtc-star "^0.25.0"
+    libp2p-webrtc-star "0.25.0"
     libp2p-websockets "^0.16.2"
     lodash "^4.17.21"
     nice-repl "^0.1.2"
@@ -1192,6 +1192,13 @@ abbrev@1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/abbrev/-/abbrev-1.1.1.tgz#f8f2c887ad10bf67f634f005b6987fed3179aac8"
   integrity sha512-nne9/IiQ/hzIhY6pdDnbBtz7DjPTKrY00P/zvPSm5pOFkl6xuGrGnXn/VtTNNfNtAfZ9/1RtehkszU9qcTii0Q==
+
+abort-controller@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/abort-controller/-/abort-controller-3.0.0.tgz#eaf54d53b62bae4138e809ca225c8439a6efb392"
+  integrity sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==
+  dependencies:
+    event-target-shim "^5.0.0"
 
 abortable-iterator@^3.0.0, abortable-iterator@^3.0.2:
   version "3.0.2"
@@ -2222,7 +2229,6 @@ elliptic@6.5.4, elliptic@^6.5.3, elliptic@^6.5.4:
 
 "emasm@https://github.com/kungfuflex/emasm":
   version "0.2.0"
-  uid d662a391fa51c4c50561222a321de7d035c7831a
   resolved "https://github.com/kungfuflex/emasm#d662a391fa51c4c50561222a321de7d035c7831a"
 
 emoji-regex@^8.0.0:
@@ -2447,6 +2453,11 @@ event-iterator@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/event-iterator/-/event-iterator-2.0.0.tgz#10f06740cc1e9fd6bc575f334c2bc1ae9d2dbf62"
   integrity sha512-KGft0ldl31BZVV//jj+IAIGCxkvvUkkON+ScH6zfoX+l+omX6001ggyRSpI0Io2Hlro0ThXotswCtfzS8UkIiQ==
+
+event-target-shim@^5.0.0:
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/event-target-shim/-/event-target-shim-5.0.1.tgz#5d4d3ebdf9583d63a5333ce2deb7480ab2b05789"
+  integrity sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==
 
 eventemitter3@^4.0.4:
   version "4.0.7"
@@ -3265,7 +3276,7 @@ iso-random-stream@^1.1.0:
     buffer "^6.0.3"
     readable-stream "^3.4.0"
 
-iso-random-stream@^2.0.0:
+iso-random-stream@^2.0.0, iso-random-stream@^2.0.2:
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/iso-random-stream/-/iso-random-stream-2.0.2.tgz#a24f77c34cfdad9d398707d522a6a0cc640ff27d"
   integrity sha512-yJvs+Nnelic1L2vH2JzWvvPQFA4r7kSTnpST/+LkAQjSz0hos2oqLD+qIVi9Qk38Hoe7mNDt3j0S27R58MVjLQ==
@@ -3596,7 +3607,7 @@ level@^8.0.0:
     browser-level "^1.0.1"
     classic-level "^1.2.0"
 
-libp2p-bootstrap@^0.14.0:
+libp2p-bootstrap@0.14.0:
   version "0.14.0"
   resolved "https://registry.yarnpkg.com/libp2p-bootstrap/-/libp2p-bootstrap-0.14.0.tgz#820cc2d259a4710c660d239c5e2043384a1317b2"
   integrity sha512-j3slZo5nOdA8wVlav8dRZeAXutZ7psz/f10DLoIEX/EFif7uU5oZfIYvjbVGo3ZDl+VQLo2tR0m1lV0westQ3g==
@@ -3674,22 +3685,45 @@ libp2p-crypto@^0.21.0, libp2p-crypto@^0.21.2:
     protobufjs "^6.11.2"
     uint8arrays "^3.0.0"
 
-libp2p-gossipsub@^0.13.0:
-  version "0.13.0"
-  resolved "https://registry.yarnpkg.com/libp2p-gossipsub/-/libp2p-gossipsub-0.13.0.tgz#a70db85139c62d7a8ad273be3ba01d1c9f338f7b"
-  integrity sha512-xy2jRZGmJpjy++Di6f1admtjve8Fx0z5l8NISTQS282egwbRMmTPE6/UeYktb6hNGAgtSTIwXdHjXmMOiTarFA==
+libp2p-gossipsub@0.14.1:
+  version "0.14.1"
+  resolved "https://registry.yarnpkg.com/libp2p-gossipsub/-/libp2p-gossipsub-0.14.1.tgz#d60127574889adf5a40c4b1c0965ccf409faa24c"
+  integrity sha512-z1IzD6MUeJpxAKdvgJuofpPolYxuiEkhO1XcUASfixyl10O+tUPjDrDYwDmmOV+75femnqIOxq62VR1UhUvNdA==
   dependencies:
     "@types/debug" "^4.1.7"
     debug "^4.3.1"
     denque "^1.5.0"
     err-code "^3.0.1"
+    iso-random-stream "^2.0.2"
     it-pipe "^1.1.0"
-    libp2p-interfaces "^4.0.4"
+    libp2p-crypto "^0.21.2"
+    libp2p-interfaces "4.0.4"
+    multiformats "^9.6.4"
     peer-id "^0.16.0"
     protobufjs "^6.11.2"
     uint8arrays "^3.0.0"
 
-libp2p-interfaces@^4.0.0, libp2p-interfaces@^4.0.4:
+libp2p-interfaces@4.0.4:
+  version "4.0.4"
+  resolved "https://registry.yarnpkg.com/libp2p-interfaces/-/libp2p-interfaces-4.0.4.tgz#aa88ce344cb73bdf3972c7ef4a79566c27a41228"
+  integrity sha512-pD46BpdZBM4OEs/LdYJ74BT582OyL+MLOawZr+YRdQTt3s0UZBInc0SF/AhhL2je9bcfkMe4Z1ko+/nninTNvw==
+  dependencies:
+    abort-controller "^3.0.0"
+    abortable-iterator "^3.0.0"
+    debug "^4.3.1"
+    err-code "^3.0.1"
+    it-length-prefixed "^5.0.2"
+    it-pipe "^1.1.0"
+    it-pushable "^1.4.2"
+    libp2p-crypto "^0.21.0"
+    multiaddr "^10.0.0"
+    multiformats "^9.1.2"
+    p-queue "^6.6.2"
+    peer-id "^0.16.0"
+    protobufjs "^6.10.2"
+    uint8arrays "^3.0.0"
+
+libp2p-interfaces@^4.0.0:
   version "4.0.6"
   resolved "https://registry.yarnpkg.com/libp2p-interfaces/-/libp2p-interfaces-4.0.6.tgz#462062e04a680703bca18eb1d7a9c963a39344d1"
   integrity sha512-3KjzNEIWhi+VoOamLvgKKUE/xqwxSw/JYqsBnfMhAWVRvRtosROtVT03wci2XbuuowCYw+/hEX1xKJIR1w5n0A==
@@ -3814,7 +3848,7 @@ libp2p-webrtc-peer@^10.0.1:
     randombytes "^2.0.3"
     readable-stream "^3.4.0"
 
-libp2p-webrtc-star@^0.25.0:
+libp2p-webrtc-star@0.25.0:
   version "0.25.0"
   resolved "https://registry.yarnpkg.com/libp2p-webrtc-star/-/libp2p-webrtc-star-0.25.0.tgz#c7cb80379d9064eea4e65e8eab8dba2f141de4ce"
   integrity sha512-SyXjHDrm+qlKQE5HIddrUCSwkxCIJ30PAH4ZVNNADkC0F5IVQY9EoVJ+/rrzZuDDqccnS15TgxW13vmybX96bQ==
@@ -4310,7 +4344,7 @@ multiformats@^12.0.1, multiformats@^12.1.3:
   resolved "https://registry.yarnpkg.com/multiformats/-/multiformats-12.1.3.tgz#cbf7a9861e11e74f8228b21376088cb43ba8754e"
   integrity sha512-eajQ/ZH7qXZQR2AgtfpmSMizQzmyYVmCql7pdhldPuYQi4atACekbJaQplk6dWyIi10jCaFnd6pqvcEFXjbaJw==
 
-multiformats@^9.0.0, multiformats@^9.1.2, multiformats@^9.4.2, multiformats@^9.4.5:
+multiformats@^9.0.0, multiformats@^9.1.2, multiformats@^9.4.2, multiformats@^9.4.5, multiformats@^9.6.4:
   version "9.9.0"
   resolved "https://registry.yarnpkg.com/multiformats/-/multiformats-9.9.0.tgz#c68354e7d21037a8f1f8833c8ccd68618e8f1d37"
   integrity sha512-HoMUjhH9T8DDBNT+6xzkrd9ga/XiBI4xLr58LJACwK6G3HTOPeMz4nB4KJs33L2BelrIJa7P0VuNaVF3hMYfjg==
