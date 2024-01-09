@@ -69,7 +69,7 @@ Inputs:
 }
 ```
 
-A .drip name can be used in place of a multiaddr, if one is registered
+A .drip name can be used in place of a pint address, if one is registered
 
 ```js
 {
@@ -83,7 +83,7 @@ pintswap-cli peer --peer wock.drip
 
 ### /peer-image
 
-Pipes binary data to stdout containing the PNG image content for a PeerId profile picture. Should be redirected to a file. Inputs can be multiaddr or a .drip name.
+Pipes binary data to stdout containing the PNG image content for a PeerId profile picture. Should be redirected to a file. Inputs can be pint address or a .drip name.
 
 Inputs:
 
@@ -99,7 +99,7 @@ pintswap-cli peer-image --peer wock.drip > ~/wock.png
 
 ### /add
 
-Adds a limit order to the local orderbook. If the order exists on the daemon, it can be taken by anyone who dials the peer with the /trade function, whether or not the node is actively publishing. It only requires the multiaddr of the daemon to trade against it, or otherwise the .drip name registered, if there is one.
+Adds a limit order to the local orderbook. If the order exists on the daemon, it can be taken by anyone who dials the peer with the /trade function, whether or not the node is actively publishing. It only requires the pint address of the daemon to trade against it, or otherwise the .drip name registered, if there is one.
 
 Inputs:
 
@@ -245,7 +245,7 @@ pintswap-cli register --name wock.drip
 
 ### /resolve
 
-Resolves a `.drip` name to a multiaddr. Can also be used to do reverse lookups
+Resolves a `.drip` name to a pint address. Can also be used to do reverse lookups
 
 Inputs:
 
