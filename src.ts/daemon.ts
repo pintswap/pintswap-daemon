@@ -1,18 +1,16 @@
 import express from "express";
 import { createLogger } from "@pintswap/sdk/lib/logger";
-import { ethers, AbstractProvider, Transaction } from "ethers";
-import { hashOffer, Pintswap } from "@pintswap/sdk";
+import { ethers, Signer, Transaction } from "ethers";
+import { hashOffer, Pintswap, providerFromChainId } from "@pintswap/sdk";
 import { mkdirp } from "mkdirp";
 import path from "path";
 import bodyParser from "body-parser";
-import url from "url";
 import PeerId from "peer-id";
 import fs from "fs-extra";
 import { TOKENS_BY_ID } from "./token-list";
 import { ZkSyncProvider } from "ethers-v6-zksync-compat";
 import { createServer } from "http";
 import { WebSocket, WebSocketServer } from "ws";
-import clone from "clone";
 
 import { callBundle, sendBundle } from "./utils";
 import { pack } from "./repack";
@@ -26,8 +24,6 @@ const fetch = global.fetch;
 
 const GASLIMIT_CAP = BigInt(600000);
 
-let id = 1;
-
 function mapBigIntToHexRecursive(o) {
   if (Array.isArray(o)) return o.map((v) => mapBigIntToHexRecursive(v));
   if (o === null) return o;
@@ -40,22 +36,6 @@ export async function signBundle(signer, body) {
   return `${await signer.getAddress()}:${await signer.signMessage(
     ethers.id(body),
   )}`;
-}
-
-export function providerFromChainId(chainId) {
-  switch (Number(chainId)) {
-    case 1:
-      return new ethers.InfuraProvider("mainnet");
-    case 42161:
-      return new ethers.InfuraProvider("arbitrum");
-    case 10:
-      return new ethers.InfuraProvider("optimism");
-    case 137:
-      return new ethers.InfuraProvider("polygon");
-    case 324:
-      return new ZkSyncProvider();
-  }
-  throw Error("chainid " + chainId + " not supported");
 }
 
 export function toProvider(p) {
@@ -76,9 +56,9 @@ export function walletFromEnv() {
   return new ethers.Wallet(WALLET);
 }
 
-export function providerFromEnv() {
-  const chainId = Number(process.env.PINTSWAP_DAEMON_CHAINID || 1);
-  return providerFromChainId(chainId);
+export function providerFromEnv(chainId?: number) {
+  const _chainId = Number(chainId || process.env.PINTSWAP_DAEMON_CHAINID || 1);
+  return providerFromChainId(_chainId);
 }
 
 export const PINTSWAP_DIRECTORY = path.join(
@@ -175,108 +155,30 @@ export class PintswapDaemon {
   public server: ReturnType<typeof createServer>;
   public wsServer: WebSocketServer;
   public handlers: ReturnType<typeof this.createHandlers>;
-  async broadcast(msg: any) {
-    if (this.wsServer)
-      this.wsServer.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) client.send(msg);
-      });
-  }
-  async runServer() {
-    const hostname = process.env.PINTSWAP_DAEMON_HOST || "127.0.0.1";
-    const port = process.env.PINTSWAP_DAEMON_PORT || 42161;
-    const uri = hostname + ":" + port;
-    await new Promise<void>((resolve, reject) => {
-      (this.server.listen as any)(port, hostname, (err) =>
-        err ? reject(err) : resolve(),
-      );
-    });
-    this.logger.info("daemon bound to " + uri);
-  }
+  public chainId: number;
 
-  async saveData() {
-    await mkdirp((this.constructor as any).PINTSWAP_DIRECTORY);
-    const data = this.pintswap.toObject();
-    const toSave = {
-      userData: data.userData,
-      offers: data.offers,
-    };
-    await fs.writeFile(
-      (this.constructor as any).PINTSWAP_DATA_FILEPATH,
-      JSON.stringify(toSave, null, 2),
-    );
-  }
-  async loadData() {
-    await mkdirp((this.constructor as any).PINTSWAP_DIRECTORY);
-    const exists = await fs.exists(
-      (this.constructor as any).PINTSWAP_DATA_FILEPATH,
-    );
-    if (exists) {
-      const data = JSON.parse(
-        await fs.readFile(
-          (this.constructor as any).PINTSWAP_DATA_FILEPATH,
-          "utf8",
-        ),
-      );
-      return {
-        userData: {
-          bio: data.userData.bio || "",
-          image: Buffer.from(data.userData.image, "base64"),
-        },
-        offers: new Map(data.offers.map((v) => [hashOffer(v), v])),
+  bindLogger() {
+    const self = this;
+    ["debug", "info", "error"].forEach((logLevel) => {
+      const fn = this.logger[logLevel];
+      this.logger[logLevel] = function (...args) {
+        const [v] = args;
+        const timestamp = Date.now();
+        self.broadcast(
+          JSON.stringify({
+            type: "log",
+            message: {
+              logLevel,
+              timestamp,
+              data: v,
+            },
+          }),
+        );
+        fn.apply(self.logger, args);
       };
-    }
-    return null;
+    });
   }
 
-  get flashbots() {
-    return { provider: this.wallet.provider, authSigner: this.wallet };
-  }
-  async sendBundle(packed, blockNumber) {
-    return await sendBundle(
-      this.pintswap.logger,
-      this.flashbots,
-      packed,
-      blockNumber + 1,
-    ) as any;
-  }
-  constructor() {
-    this.logger = logger;
-    this.wallet = walletFromEnv().connect(providerFromEnv()) as ethers.Wallet;
-    this.rpc = express();
-    this.logger.info(this.flashbots);
-    this.bindMiddleware();
-    this.bindLogger();
-  }
-  static async create() {
-    const instance = new this();
-    return instance;
-  }
-  async start() {
-    await this.instantiatePintswap();
-    this.bindRoutes();
-    await this.initializePintswap();
-    await this.runServer();
-  }
-  async loadOrCreatePeerId() {
-    await mkdirp((this.constructor as any).PINTSWAP_DIRECTORY);
-    if (await fs.exists(PINTSWAP_PEERID_FILEPATH)) {
-      return await PeerId.createFromJSON(
-        JSON.parse(
-          await fs.readFile(
-            (this.constructor as any).PINTSWAP_PEERID_FILEPATH,
-            "utf8",
-          ),
-        ),
-      );
-    }
-    this.logger.info("generating PeerId ...");
-    const peerId = await PeerId.create();
-    await fs.writeFile(
-      (this.constructor as any).PINTSWAP_PEERID_FILEPATH,
-      JSON.stringify(peerId.toJSON(), null, 2),
-    );
-    return peerId;
-  }
   bindMiddleware() {
     this.rpc.use(bodyParser.json({ extended: true } as any));
     const self = this;
@@ -305,6 +207,110 @@ export class PintswapDaemon {
       next();
     });
   }
+
+  constructor() {
+    this.logger = logger;
+    this.wallet = walletFromEnv().connect(providerFromEnv()) as ethers.Wallet;
+    this.rpc = express();
+    this.logger.info(this.flashbots);
+    this.bindMiddleware();
+    this.bindLogger();
+  }
+
+  static async create() {
+    const instance = new this();
+    return instance;
+  }
+
+  get flashbots() {
+    return { provider: this.wallet.provider, authSigner: this.wallet };
+  }
+
+  async runServer() {
+    const hostname = process.env.PINTSWAP_DAEMON_HOST || "127.0.0.1";
+    const port = process.env.PINTSWAP_DAEMON_PORT || 42161;
+    const uri = hostname + ":" + port;
+    await new Promise<void>((resolve, reject) => {
+      (this.server.listen as any)(port, hostname, (err) =>
+        err ? reject(err) : resolve(),
+      );
+    });
+    this.logger.info("daemon bound to " + uri);
+  }
+
+  async saveData() {
+    await mkdirp((this.constructor as any).PINTSWAP_DIRECTORY);
+    const data = this.pintswap.toObject();
+    const toSave = {
+      userData: data.userData,
+      offers: data.offers,
+    };
+    await fs.writeFile(
+      (this.constructor as any).PINTSWAP_DATA_FILEPATH,
+      JSON.stringify(toSave, null, 2),
+    );
+  }
+
+  async loadData() {
+    await mkdirp((this.constructor as any).PINTSWAP_DIRECTORY);
+    const exists = await fs.exists(
+      (this.constructor as any).PINTSWAP_DATA_FILEPATH,
+    );
+    if (exists) {
+      const data = JSON.parse(
+        await fs.readFile(
+          (this.constructor as any).PINTSWAP_DATA_FILEPATH,
+          "utf8",
+        ),
+      );
+      return {
+        userData: {
+          bio: data.userData.bio || "",
+          image: Buffer.from(data.userData.image, "base64"),
+        },
+        offers: new Map(data.offers.map((v) => [hashOffer(v), v])),
+      };
+    }
+    return null;
+  }
+
+  async broadcast(msg: any) {
+    if (this.wsServer)
+      this.wsServer.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) client.send(msg);
+      });
+  }
+
+  async sendBundle(packed, blockNumber) {
+    return await sendBundle(
+      this.pintswap.logger,
+      this.flashbots,
+      packed,
+      blockNumber + 1,
+    ) as any;
+  }
+
+  async loadOrCreatePeerId() {
+    await mkdirp((this.constructor as any).PINTSWAP_DIRECTORY);
+    if (await fs.exists(PINTSWAP_PEERID_FILEPATH)) {
+      return await PeerId.createFromJSON(
+        JSON.parse(
+          await fs.readFile(
+            (this.constructor as any).PINTSWAP_PEERID_FILEPATH,
+            "utf8",
+          ),
+        ),
+      );
+    }
+    this.logger.info("generating PeerId ...");
+    const peerId = await PeerId.create();
+    await fs.writeFile(
+      (this.constructor as any).PINTSWAP_PEERID_FILEPATH,
+      JSON.stringify(peerId.toJSON(), null, 2),
+    );
+    return peerId;
+  }
+
   async instantiatePintswap() {
     const peerId = await this.loadOrCreatePeerId();
     this.logger.info("using wallet: " + this.wallet.address);
@@ -322,6 +328,7 @@ export class PintswapDaemon {
       },
     );
   }
+
   async initializePintswap() {
     await this.pintswap.startNode();
     this.logger.info("connected to pintp2p");
@@ -345,29 +352,33 @@ export class PintswapDaemon {
       })().catch((err) => this.logger.error(err));
     });
   }
-  bindLogger() {
-    const self = this;
-    ["debug", "info", "error"].forEach((logLevel) => {
-      const fn = this.logger[logLevel];
-      this.logger[logLevel] = function (...args) {
-        const [v] = args;
-        const timestamp = Date.now();
-        self.broadcast(
-          JSON.stringify({
-            type: "log",
-            message: {
-              logLevel,
-              timestamp,
-              data: v,
-            },
-          }),
-        );
-        fn.apply(self.logger, args);
-      };
-    });
+
+  async start() {
+    await this.instantiatePintswap();
+    this.bindRoutes();
+    await this.initializePintswap();
+    await this.runServer();
   }
+
   createHandlers() {
     let publisher: any;
+
+    const chainId: Handler = (req, res) => {
+      (async () => {
+        try {
+          let { id } = req.body;
+          this.wallet = walletFromEnv().connect(providerFromEnv(Number(id))) as ethers.Wallet;
+          this.pintswap.signer = walletFromEnv() as ethers.Wallet
+          res.json({
+            status: "OK",
+            result: JSON.stringify(this.pintswap.signer),
+          });
+        } catch (e) {
+          res.json({ status: "NO", result: e });
+        }
+      })().catch((err) => this.logger.error(err));
+    }
+
     const peer: Handler = (req, res) => {
       (async () => {
         try {
@@ -407,6 +418,7 @@ export class PintswapDaemon {
         }
       })().catch((err) => this.logger.error(err));
     };
+
     const publish: Handler = (req, res) => {
       if (publisher) {
         this.logger.info("already publishing offers");
@@ -422,19 +434,20 @@ export class PintswapDaemon {
         result: "OK",
       });
     };
+
     const publishOnce: Handler = (req, res) => {
       (async () => {
         this.logger.info('publishing ' + String(Object.keys(this.pintswap.offers).length) + ' offers');
         await this.pintswap.publishOffers();
-	res.json({
+	      res.json({
           status: "OK",
-	  result: "OK"
-	});
+	        result: "OK"
+	      });
       })().catch((err) => {
         res.json({
           status: "NO",
-	  result: err
-	});
+	        result: err
+	      });
       });
     };
 
@@ -493,6 +506,7 @@ export class PintswapDaemon {
         });
       })().catch((err) => this.logger.error(err));
     };
+
     const trade: Handler = async (req, res) => {
       let { broadcast, trades, peer } = req.body;
       try {
@@ -578,9 +592,9 @@ export class PintswapDaemon {
           const [txParams] = args;
           if (!txParams.to) {
             const gasLimitEstimate = await estimateGasBound(...args);
-	    if (BigInt(gasLimitEstimate) > GASLIMIT_CAP) return GASLIMIT_CAP;
-	    else return gasLimitEstimate;
-	  }
+            if (BigInt(gasLimitEstimate) > GASLIMIT_CAP) return GASLIMIT_CAP;
+            else return gasLimitEstimate;
+          }
           return await estimateGasOriginal.apply(provider, args);
         };
         let result;
@@ -589,18 +603,18 @@ export class PintswapDaemon {
         await _trades.toPromise();
         if (broadcast) {
           const blockNumber = await providerProxy.getBlockNumber();
-	  const packed = await pack(this.pintswap.signer, txs.map((v) => v.transaction));
-	  logger.info(mapBigIntToHexRecursive(await callBundle(
+	        const packed = await pack(this.pintswap.signer, txs.map((v) => v.transaction));
+	        logger.info(mapBigIntToHexRecursive(await callBundle(
             this.pintswap.logger,
-	    this.flashbots,
-	    packed,
+	          this.flashbots,
+	          packed,
             blockNumber + 1
-	  )));
+	        )));
           const bundleResult = (await this.sendBundle(
-	    packed,
+	          packed,
             blockNumber + 1,
           ));
-	  logger.info(bundleResult);
+	        logger.info(bundleResult);
           result = JSON.stringify(bundleResult, null, 2);
         } else result = JSON.stringify(txs, null, 2);
         res.json({
@@ -614,6 +628,7 @@ export class PintswapDaemon {
         });
       }
     };
+
     const unsubscribe: Handler = async (req, res) => {
       (async () => {
         await this.pintswap.pubsub.unsubscribe(
@@ -625,6 +640,7 @@ export class PintswapDaemon {
         });
       })().catch((err) => this.logger.error(err));
     };
+
     const quiet: Handler = (req, res) => {
       if (publisher) {
         publisher.stop();
@@ -641,6 +657,7 @@ export class PintswapDaemon {
         result: "OK",
       });
     };
+
     const add: Handler = (req, res) => {
       (async () => {
         const {
@@ -688,6 +705,7 @@ export class PintswapDaemon {
         });
       });
     };
+
     const limit: Handler = (req, res) => {
       (async () => {
         const { givesToken, getsToken, givesAmount, getsAmount } =
@@ -711,6 +729,7 @@ export class PintswapDaemon {
         });
       });
     };
+
     const register: Handler = (req, res) => {
       (async () => {
         const { name } = req.body;
@@ -727,6 +746,7 @@ export class PintswapDaemon {
         });
       });
     };
+
     const address: Handler = (req, res) => {
       try {
         res.json({
@@ -741,6 +761,7 @@ export class PintswapDaemon {
         });
       }
     };
+
     const ethereumAddress: Handler = (req, res) => {
       res.json({
         status: "OK",
@@ -760,7 +781,8 @@ export class PintswapDaemon {
           result: err.message
         })
       })
-    }
+    };
+
     const setBio: Handler = (req, res) => {
       (async () => {
         const { bio } = req.body;
@@ -778,6 +800,7 @@ export class PintswapDaemon {
         });
       });
     };
+
     const setImage: Handler = (req, res) => {
       const { image } = req.body;
       (async () => {
@@ -796,6 +819,7 @@ export class PintswapDaemon {
         });
       });
     };
+
     const offers: Handler = (req, res) => {
       const _offers = [...this.pintswap.offers].map(([k, v]) => ({
         ...v,
@@ -824,6 +848,7 @@ export class PintswapDaemon {
         });
       });
     };
+
     const clear: Handler = (req, res) => {
       (async () => {
         for (const [key] of this.pintswap.offers.entries()) {
@@ -842,12 +867,13 @@ export class PintswapDaemon {
         });
       });
     };
+
     return {
       post: {
         peer,
         resolve,
         publish,
-	publishOnce,
+	      publishOnce,
         orderbook,
         peerImage,
         subscribe,
@@ -864,10 +890,12 @@ export class PintswapDaemon {
         offers,
         del,
         clear,
-        userData
+        userData,
+        chainId
       },
     };
   }
+
   bindRoutes() {
     this.handlers = this.createHandlers();
     Object.entries(this.handlers.post).map((d) => {
